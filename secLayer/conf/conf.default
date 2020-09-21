@@ -1,0 +1,42 @@
+#redis相关配置
+[redis]
+redis_addr =
+redis_password =
+redis_max_idle =
+redis_max_active =
+redis_idle_timeout =
+redis_proxy2layer_queue_key =
+redis_layer2proxy_queue_key =
+
+#etcd相关配置
+[etcd]
+etcd_addr =
+etcd_timeout =
+etcd_sec_key_prefix =
+etcd_sec_product_key =
+etcd_sec_black_list_key =
+
+#日志文件相关配置
+[logs]
+logs_path =
+logs_level =
+
+[service]
+#处理用户秒杀请求的go协程数量
+handle_user_goroutine_num =
+#向proxy2layer redis队列中写数据的go协程数量
+write_proxy2layer_goroutine_num =
+#从layer2proxy redis队列中读数据的go协程数量
+read_layer2proxy_goroutine_num =
+#从redis队列中取到的用户请求放入channel中 供处理协程们从中取数据去进行处理
+read2handle_chan_size =
+#将用户秒杀请求的处理结果放入channel中 供协程们从中取出并将其写入redis请求处理结果队列中
+handle2write_chan_size =
+#客户端请求的最大等待时间
+max_request_wait_timeout =
+#单位是毫秒
+send_to_handle_chan_timeout =
+send_to_write_chan_timeout =
+
+#token密钥 (秒杀成功后生成token加密需要使用的密钥)
+seckill_token_passwd =

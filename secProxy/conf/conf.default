@@ -1,0 +1,39 @@
+httpaddr =
+httpport =
+appname =
+
+runmode =
+autorender =
+
+[dev]
+#redis相关配置
+redis_addr =
+redis_password =
+redis_max_idle =
+redis_max_active =
+redis_idle_timeout =
+redis_proxy2layer_queue_key =
+redis_layer2proxy_queue_key =
+#etcd相关配置
+etcd_addr =
+etcd_timeout =
+etcd_sec_key_prefix =
+etcd_sec_product_key =
+etcd_sec_black_list_key =
+#日志文件相关配置
+logs_path =
+logs_level =
+#cookie 密钥
+cookie_secret_key =
+#客户端请求的最大等待时间
+max_request_wait_timeout =
+#用户请求频率限制
+user_access_limit_per_second =
+ip_access_limit_per_second =
+#referer白名单
+referer_white_list =
+
+#向proxy2layer redis队列中写数据的go协程数量
+write_proxy2layer_goroutine_num =
+#从layer2proxy redis队列中读数据的go协程数量
+read_layer2proxy_goroutine_num =
