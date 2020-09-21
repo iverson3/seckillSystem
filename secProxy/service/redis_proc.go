@@ -3,7 +3,6 @@ package service
 import (
 	"encoding/json"
 	"github.com/astaxie/beego/logs"
-	"github.com/garyburd/redigo/redis"
 )
 
 func writeToRedis() {
@@ -19,7 +18,7 @@ func writeToRedis() {
 				continue
 			}
 
-			_, err = conn.Do("RPUSH", SeckillConfig.Redis.RedisProxy2LayerQueueKey, data)
+			_, err = conn.Do("RPUSH", SeckillConfig.Redis.RedisProxy2LayerQueueKey, string(data))
 			if err != nil {
 				logs.Error("rpush request to redis failed! request: %v; error: %v", req, err)
 				break
@@ -34,17 +33,26 @@ func readFromRedis() {
 	for {
 		conn := SeckillConfig.Proxy2LayerRedisPool.Get()
 		for {
-			values, err := redis.Values(conn.Do("BLPOP", SeckillConfig.Redis.RedisLayer2ProxyQueueKey, 0))
+			values, err := conn.Do("BLPOP", SeckillConfig.Redis.RedisLayer2ProxyQueueKey, 0)
 			if err != nil {
 				logs.Error("lpop user_response from redis failed! error: %v", err)
 				break
 			}
 			// redis中blpop返回的是元组对象，因此需要进行特殊处理
-			data := B2S(values[1].([]uint8))
-			logs.Debug("got response from redis! response: %s", data)
+			dataArr, ok := values.([]interface{})
+			if !ok || len(dataArr) != 2 {
+				logs.Error("blpop response from redis failed！ error: Type Assertion is wrong.")
+				continue
+			}
+			data, ok := dataArr[1].([]byte)
+			if !ok {
+				logs.Error("blpop response from redis failed！ error: Type Assertion is wrong.")
+				continue
+			}
+			logs.Debug("got response from redis! response: %s", string(data))
 
 			var resp SecResponse
-			err = json.Unmarshal([]byte(data), &resp)
+			err = json.Unmarshal(data, &resp)
 			if err != nil {
 				logs.Debug("json Unmarshal for user_response_str failed! user_response_str: %s; error: %v", data, err)
 				continue
@@ -60,13 +68,4 @@ func readFromRedis() {
 		}
 		conn.Close()
 	}
-}
-
-// 将[]uint8类型的数据转为string类型
-func B2S(bs []uint8) string {
-	ba := []byte{}
-	for _, b := range bs {
-		ba = append(ba, byte(b))
-	}
-	return string(ba)
 }

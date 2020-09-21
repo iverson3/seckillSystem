@@ -42,7 +42,7 @@ func main() {
 	end := time.Now()
 	seconds := end.Sub(start).Seconds()
 
-	time.Sleep(5 * time.Second)
+	time.Sleep(3 * time.Second)
 	close(chanInt)
 
 	fmt.Printf("=========== total use seconds: %v ================= \n", seconds)
@@ -115,6 +115,6 @@ func Tongji(out chan int) {
 		}
 	}
 
-	fmt.Printf("Total Request: %d \n seckill success Request: %d \n seckill fail: %d \n failed Request: %d \n error Request: %d \n",
+	fmt.Printf("Total Request: %d \n seckill success: %d \n seckill fail: %d \n failed Request: %d \n error Request: %d \n",
 		Sum, seckillSucc, requestSuccess, requestFail, requestError)
 }

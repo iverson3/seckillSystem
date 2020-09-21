@@ -5,7 +5,6 @@ import (
 	"encoding/json"
 	"fmt"
 	"github.com/astaxie/beego/logs"
-	"github.com/garyburd/redigo/redis"
 	"math/rand"
 	"time"
 )
@@ -30,32 +29,32 @@ func Run() {
 	logs.Debug("all process goroutine exited")
 }
 
-// 将[]uint8类型的数据转为string类型
-func B2S(bs []uint8) string {
-	ba := []byte{}
-	for _, b := range bs {
-		ba = append(ba, byte(b))
-	}
-	return string(ba)
-}
-
 func HandleReader()  {
 	for {
 		conn := secLayerContext.Proxy2LayerRedisPool.Get()
 		for {
 			logs.Debug("prepare to read request from redis queue")
 			// BLPOP：阻塞式的从redis list队列中获取元素，超时时间设置为0 表示无限超时时间，没有元素则一直阻塞
-			values, err := redis.Values(conn.Do("BLPOP", secLayerContext.SecLayerConfig.Proxy2LayerRedis.RedisProxy2LayerQueueKey, 0))
+			values, err := conn.Do("BLPOP", secLayerContext.SecLayerConfig.Proxy2LayerRedis.RedisProxy2LayerQueueKey, 0)
 			if err != nil {
 				logs.Error("lpop user_request from redis failed! error: %v", err)
 				break
 			}
 			// redis中blpop返回的是元组对象，因此需要进行特殊处理
-			data := B2S(values[1].([]uint8))
-			logs.Debug("got user_request from redis; request: %s", data)
+			dataArr, ok := values.([]interface{})
+			if !ok || len(dataArr) != 2 {
+				logs.Error("lpop user_request from redis failed！ error: Type Assertion is wrong.")
+				continue
+			}
+			data, ok := dataArr[1].([]byte)
+			if !ok {
+				logs.Error("lpop user_request from redis failed！ error: Type Assertion is wrong.")
+				continue
+			}
+			logs.Debug("got user_request from redis! request: %s", string(data))
 
 			var req SecRequest
-			err = json.Unmarshal([]byte(data), &req)
+			err = json.Unmarshal(data, &req)
 			if err != nil {
 				logs.Debug("json Unmarshal user_request_str failed! user_request_str: %s; error: %v", data, err)
 				continue
@@ -75,6 +74,8 @@ func HandleReader()  {
 				logs.Warn("send request to channel timeout, request: %v", req)
 				break
 			}
+
+
 		}
 		conn.Close()
 	}
