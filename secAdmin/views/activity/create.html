@@ -1,0 +1,233 @@
+<!-- BEGIN SAMPLE TABLE PORTLET-->
+
+<!-- BEGIN PAGE HEADER-->
+
+<div class="row-fluid">
+
+    <div class="span12">
+
+        <!-- BEGIN STYLE CUSTOMIZER -->
+
+        <div class="color-panel hidden-phone">
+
+            <div class="color-mode-icons icon-color"></div>
+
+            <div class="color-mode-icons icon-color-close"></div>
+
+            <div class="color-mode">
+
+                <p>THEME COLOR</p>
+
+                <ul class="inline">
+
+                    <li class="color-black current color-default" data-style="default"></li>
+
+                    <li class="color-blue" data-style="blue"></li>
+
+                    <li class="color-brown" data-style="brown"></li>
+
+                    <li class="color-purple" data-style="purple"></li>
+
+                    <li class="color-grey" data-style="grey"></li>
+
+                    <li class="color-white color-light" data-style="light"></li>
+
+                </ul>
+
+                <label>
+
+                    <span>Layout</span>
+
+                    <select class="layout-option m-wrap small">
+
+                        <option value="fluid" selected>Fluid</option>
+
+                        <option value="boxed">Boxed</option>
+
+                    </select>
+
+                </label>
+
+                <label>
+
+                    <span>Header</span>
+
+                    <select class="header-option m-wrap small">
+
+                        <option value="fixed" selected>Fixed</option>
+
+                        <option value="default">Default</option>
+
+                    </select>
+
+                </label>
+
+                <label>
+
+                    <span>Sidebar</span>
+
+                    <select class="sidebar-option m-wrap small">
+
+                        <option value="fixed">Fixed</option>
+
+                        <option value="default" selected>Default</option>
+
+                    </select>
+
+                </label>
+
+                <label>
+
+                    <span>Footer</span>
+
+                    <select class="footer-option m-wrap small">
+
+                        <option value="fixed">Fixed</option>
+
+                        <option value="default" selected>Default</option>
+
+                    </select>
+
+                </label>
+
+            </div>
+
+        </div>
+
+        <!-- END BEGIN STYLE CUSTOMIZER -->
+
+        <!-- BEGIN PAGE TITLE & BREADCRUMB-->
+
+
+        <ul class="breadcrumb">
+
+            <li>
+
+                <i class="icon-home"></i>
+
+                <a href="index.html">首页</a>
+
+                <i class="icon-angle-right"></i>
+
+            </li>
+
+            <li>
+
+                <a href="#">活动管理</a>
+
+                <i class="icon-angle-right"></i>
+
+            </li>
+        </ul>
+
+        <!-- END PAGE TITLE & BREADCRUMB-->
+
+    </div>
+
+</div>
+
+<!-- END PAGE HEADER-->
+
+
+<div class="portlet box red">
+
+    <div class="portlet-title">
+
+        <div class="caption"><i class="icon-cogs"></i>创建活动</div>
+
+        <div class="tools">
+
+            <a href="javascript:;" class="collapse"></a>
+
+            <a href="#portlet-config" data-toggle="modal" class="config"></a>
+
+            <a href="javascript:;" class="reload"></a>
+
+        </div>
+
+    </div>
+
+    <div class="portlet-body form">
+
+        <form action="/activity/create" method="post" class="form-horizontal">
+
+            <div class="control-group">
+                <label class="control-label">活动标题</label>
+                <div class="controls">
+                    <input type="text" name="name" class="span6 m-wrap" />
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label class="control-label">活动商品</label>
+                <div class="controls">
+                    <select name="pid" class="form-control form-control-sm" id="exampleSelects">
+                        {{ range .product_list }}
+                            <option value={{.ProductId}}>{{.ProductName}}</option>
+                        {{ end }}
+                    </select>
+                </div>
+            </div>
+
+            <div class="control-group">
+                <label for="example-number-input" class="control-label">商品数量</label>
+                <div class="controls">
+                    <input class="form-control" type="number" name="total" value="1" id="total-input"/>
+                    <span class="help-inline">不能多于商品本身的库存数量</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label">秒杀概率</label>
+                <div class="controls">
+                    <input type="text" name="buy_rate" class="form-control-sm" />
+                    <span class="help-inline">必须是一个(0,1]区间的小数</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="example-number-input" class="control-label">用户限购</label>
+                <div class="controls">
+                    <input class="form-control" type="number" name="buy_limit" value="0" id="buy-limit-input"/>
+                    <span class="help-inline">用户购买数量限制，0表示没有限制</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="example-number-input" class="control-label">秒杀速度</label>
+                <div class="controls">
+                    <input class="form-control" type="number" name="sold_limit_second" value="0" id="sold-limit-second-input"/>
+                    <span class="help-inline">商品每秒卖出数量限制，0表示没有限制</span>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="example-datetime-local-input" class="control-label">开始时间</label>
+                <div class="controls">
+                    <input class="form-control" type="datetime-local" name="start_time" value="2020-09-22T12:30" id="start-time-input"/>
+                </div>
+            </div>
+            <div class="control-group">
+                <label for="example-datetime-local-input" class="control-label">结束时间</label>
+                <div class="controls">
+                    <input class="form-control" type="datetime-local" name="end_time" value="2020-09-22T12:30" id="end-time-input"/>
+                </div>
+            </div>
+            <div class="control-group">
+                <label class="control-label">活动状态</label>
+                <div class="controls">
+                    <select class="form-control-sm" name="status" data-placeholder="请选择商品状态" tabindex="1">
+                        <option value="0">可用</option>
+                        <option value="1">禁用</option>
+                    </select>
+                </div>
+            </div>
+
+            <div class="form-actions">
+                <button type="submit" class="btn blue">Submit</button>
+                <button type="button" class="btn">Cancel</button>
+            </div>
+
+        </form>
+
+    </div>
+
+</div>
+
+<!-- END SAMPLE TABLE PORTLET-->

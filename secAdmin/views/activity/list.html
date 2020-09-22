@@ -1,0 +1,194 @@
+<!-- BEGIN SAMPLE TABLE PORTLET-->
+
+<!-- BEGIN PAGE HEADER-->
+
+<div class="row-fluid">
+
+    <div class="span12">
+
+        <!-- BEGIN STYLE CUSTOMIZER -->
+
+        <div class="color-panel hidden-phone">
+
+            <div class="color-mode-icons icon-color"></div>
+
+            <div class="color-mode-icons icon-color-close"></div>
+
+            <div class="color-mode">
+
+                <p>THEME COLOR</p>
+
+                <ul class="inline">
+
+                    <li class="color-black current color-default" data-style="default"></li>
+
+                    <li class="color-blue" data-style="blue"></li>
+
+                    <li class="color-brown" data-style="brown"></li>
+
+                    <li class="color-purple" data-style="purple"></li>
+
+                    <li class="color-grey" data-style="grey"></li>
+
+                    <li class="color-white color-light" data-style="light"></li>
+
+                </ul>
+
+                <label>
+
+                    <span>Layout</span>
+
+                    <select class="layout-option m-wrap small">
+
+                        <option value="fluid" selected>Fluid</option>
+
+                        <option value="boxed">Boxed</option>
+
+                    </select>
+
+                </label>
+
+                <label>
+
+                    <span>Header</span>
+
+                    <select class="header-option m-wrap small">
+
+                        <option value="fixed" selected>Fixed</option>
+
+                        <option value="default">Default</option>
+
+                    </select>
+
+                </label>
+
+                <label>
+
+                    <span>Sidebar</span>
+
+                    <select class="sidebar-option m-wrap small">
+
+                        <option value="fixed">Fixed</option>
+
+                        <option value="default" selected>Default</option>
+
+                    </select>
+
+                </label>
+
+                <label>
+
+                    <span>Footer</span>
+
+                    <select class="footer-option m-wrap small">
+
+                        <option value="fixed">Fixed</option>
+
+                        <option value="default" selected>Default</option>
+
+                    </select>
+
+                </label>
+
+            </div>
+
+        </div>
+
+        <!-- END BEGIN STYLE CUSTOMIZER -->
+
+        <!-- BEGIN PAGE TITLE & BREADCRUMB-->
+
+
+        <ul class="breadcrumb">
+
+            <li>
+
+                <i class="icon-home"></i>
+
+                <a href="index.html">首页</a>
+
+                <i class="icon-angle-right"></i>
+
+            </li>
+
+            <li>
+
+                <a href="#">活动管理</a>
+
+                <i class="icon-angle-right"></i>
+
+            </li>
+        </ul>
+
+        <!-- END PAGE TITLE & BREADCRUMB-->
+
+    </div>
+
+</div>
+
+<!-- END PAGE HEADER-->
+
+
+<div class="portlet box red">
+
+    <div class="portlet-title">
+
+        <div class="caption"><i class="icon-cogs"></i>活动列表</div>
+
+        <div class="tools">
+
+            <a href="javascript:;" class="collapse"></a>
+
+            <a href="#portlet-config" data-toggle="modal" class="config"></a>
+
+            <a href="javascript:;" class="reload"></a>
+
+        </div>
+
+    </div>
+
+    <div class="portlet-body">
+
+        <table class="table table-hover">
+
+            <thead>
+            <tr>
+                <th>活动ID</th>
+                <th>活动标题</th>
+                <th>活动商品</th>
+                <th>活动商品数量</th>
+                <th>秒杀概率</th>
+                <th>开始时间</th>
+                <th>结束时间</th>
+                <th>活动状态</th>
+                <th>用户购买数量限制</th>
+                <th>每秒销售数量限制</th>
+                <th class="hidden-480">创建时间</th>
+            </tr>
+            </thead>
+
+            <tbody>
+            {{range .activity_list}}
+                <tr>
+                    <td>{{.Id}}</td>
+                    <td>{{.Name}}</td>
+                    <td>{{.ProductId}}</td>
+                    <td>{{.Total}}</td>
+                    <td>{{.BuyRate}}</td>
+                    <td class="hidden-480">{{.StartTimeStr}}</td>
+                    <td class="hidden-480">{{.EndTimeStr}}</td>
+                    <td><span class="label label-success">{{.StatusStr}}</span></td>
+                    <td>{{.BuyLimit}}</td>
+                    <td>{{.SoldLimitSecond}}</td>
+                    <td class="hidden-480">{{.CreateTimeStr}}</td>
+                </tr>
+            {{end}}
+            </tbody>
+
+        </table>
+
+    </div>
+
+</div>
+
+<!-- END SAMPLE TABLE PORTLET-->
