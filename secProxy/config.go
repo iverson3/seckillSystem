@@ -9,7 +9,7 @@ import (
 
 var (
 	seckillConf = &service.SeckillConf{
-		SecProductInfo: make(map[int]*service.SecProductInfoConf),
+		SecActivityListMap: make(map[int]*service.SecActivityConf),
 	}
 )
 
@@ -52,12 +52,12 @@ func initConfig() error {
 		return fmt.Errorf("init config failed! etcd_timeout[%d] config is null", etcdTimeout)
 	}
 	etcdSecKeyPrefix  := beego.AppConfig.String("etcd_sec_key_prefix")
-	etcdSecProductKey := beego.AppConfig.String("etcd_sec_product_key")
+	etcdSecActivityKey := beego.AppConfig.String("etcd_sec_activity_key")
 	if len(etcdSecKeyPrefix) == 0 {
 		return fmt.Errorf("init config failed! etcd_sec_key_prefix[%s] config is null", etcdSecKeyPrefix)
 	}
-	if len(etcdSecProductKey) == 0 {
-		return fmt.Errorf("init config failed! etcd_sec_product_key[%s] config is null", etcdSecProductKey)
+	if len(etcdSecActivityKey) == 0 {
+		return fmt.Errorf("init config failed! etcd_sec_activity_key[%s] config is null", etcdSecActivityKey)
 	}
 	if !strings.HasSuffix(etcdSecKeyPrefix, "/") {
 		etcdSecKeyPrefix = etcdSecKeyPrefix + "/"
@@ -123,7 +123,7 @@ func initConfig() error {
 	seckillConf.Etcd.EtcdAddr = etcdAddr
 	seckillConf.Etcd.EtcdTimeout = etcdTimeout
 	seckillConf.Etcd.EtcdSecKeyPrefix = etcdSecKeyPrefix
-	seckillConf.Etcd.EtcdSecProductKey = fmt.Sprintf("%s%s", etcdSecKeyPrefix, etcdSecProductKey)
+	seckillConf.Etcd.EtcdSecActivityKey = fmt.Sprintf("%s%s", etcdSecKeyPrefix, etcdSecActivityKey)
 
 	seckillConf.Log.LogPath = logsPath
 	seckillConf.Log.LogLevel = logsLevel

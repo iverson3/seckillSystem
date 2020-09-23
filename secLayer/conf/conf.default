@@ -13,7 +13,7 @@ redis_layer2proxy_queue_key =
 etcd_addr =
 etcd_timeout =
 etcd_sec_key_prefix =
-etcd_sec_product_key =
+etcd_sec_activity_key =
 etcd_sec_black_list_key =
 
 #日志文件相关配置

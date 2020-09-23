@@ -1,7 +1,7 @@
 package service
 
 const (
-	ProductStatusNormal       = 0
-	ProductStatusSoldOut      = 1
-	ProductStatusForceSoldOut = 2
+	ActivityStatusNormal       = 0
+	ActivityStatusSoldOut      = 1
+	ActivityStatusForceSoldOut = 2
 )

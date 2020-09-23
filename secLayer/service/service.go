@@ -115,10 +115,10 @@ func HandleSecUserRequest() {
 		if err != nil {
 			logs.Warn("handle user seckill request failed! request: %v, error: %v", req, err)
 			resp = &SecResponse{
-				UserId:    req.UserId,
-				ProductId: req.ProductId,
-				Token:     "",
-				Code:      ErrServiceBusy,
+				UserId:     req.UserId,
+				ActivityId: req.ActivityId,
+				Token:      "",
+				Code:       ErrServiceBusy,
 			}
 		}
 
@@ -134,36 +134,36 @@ func HandleSecUserRequest() {
 }
 
 func handleSeckill(req *SecRequest) (res *SecResponse, err error) {
-	secLayerContext.SecProductRwLock.RLock()
-	defer secLayerContext.SecProductRwLock.RUnlock()
+	secLayerContext.SecActivityRwLock.RLock()
+	defer secLayerContext.SecActivityRwLock.RUnlock()
 
 	logs.Debug("start to handle user request: %v", req)
 
 	res = &SecResponse{
-		UserId:    req.UserId,
-		ProductId: req.ProductId,
-		Code:      ErrSeckillSuccess,
+		UserId:     req.UserId,
+		ActivityId: req.ActivityId,
+		Code:       ErrSeckillSuccess,
 	}
 
-	product, ok := secLayerContext.SecLayerConfig.SecProductInfo[req.ProductId]
+	activity, ok := secLayerContext.SecLayerConfig.SecActivityListMap[req.ActivityId]
 	// 找不到商品
 	if !ok {
-		logs.Error("not found product: %v", req.ProductId)
-		res.Code = ErrProductNotFound
-		logs.Warn("handle user request end! request: %v, result: %v", req, "ErrProductNotFound")
+		logs.Error("not found activity: %v", req.ActivityId)
+		res.Code = ErrActivityNotFound
+		logs.Warn("handle user request end! request: %v, result: %v", req, "ErrActivityNotFound")
 		return
 	}
 
 	// 商品售罄
-	if product.Status == ProductStatusSoldOut {
-		res.Code = ErrProductSoldOut
-		logs.Warn("handle user request end! request: %v, result: %v", req, "ErrProductSoldOut")
+	if activity.Status == ActivityStatusSoldOut {
+		res.Code = ErrActivityProductSoldOut
+		logs.Warn("handle user request end! request: %v, result: %v", req, "ErrActivityProductSoldOut")
 		return
 	}
 
 	// 限速检测 (每件商品在单位时间内的销售数量都是有相应限制的)
 	now := time.Now().Unix()
-	if product.SecSoldLimit.Check(now) >= product.MaxSoldLimit {
+	if activity.SecSoldLimit.Check(now) >= activity.MaxSoldLimit {
 		res.Code = ErrReTry
 		logs.Warn("handle user request end! request: %v, result: %v", req, "ErrReTry: SecSoldLimit")
 		return
@@ -180,38 +180,43 @@ func handleSeckill(req *SecRequest) (res *SecResponse, err error) {
 	}
 	secLayerContext.HistoryMapLock.Unlock()
 
-	count := userHistory.GetProductBuyCount(req.ProductId)
-	if count >= product.UserMaxBuyLimit {
+	count := userHistory.GetProductBuyCount(req.ActivityId)
+	if count >= activity.UserMaxBuyLimit {
 		res.Code = ErrAlreadyBuy
 		logs.Warn("handle user request end! request: %v, result: %v", req, "ErrAlreadyBuy")
 		return
 	}
 
 	// 秒杀商品已售出的数量到达了该商品的最大库存数
-	soldCount := secLayerContext.ProductCountManager.Count(req.ProductId)
-	if soldCount >= product.Total {
-		res.Code = ErrProductSoldOut
-		product.Status = ProductStatusSoldOut
-		logs.Warn("handle user request end! request: %v, result: %v", req, "ErrProductSoldOut")
+	soldCount := secLayerContext.ProductCountManager.Count(req.ActivityId)
+	if soldCount >= activity.Total {
+		res.Code = ErrActivityProductSoldOut
+		activity.Status = ActivityStatusSoldOut
+
+		// 修改etcd中activity相关的数据
+		// 数据库要加字段 left  剩余商品数，秒杀的过程中通过监听etcd进行时时更新
+		// proxy层也需要监听并更新商品状态，如果活动的商品已售罄，则直接在proxy层对用户的请求进行拦截返回
+
+		logs.Warn("handle user request end! request: %v, result: %v", req, "ErrActivityProductSoldOut")
 		return
 	}
 
 	// 根据当前秒杀商品的成功概率 进行随机秒杀，计算出用户本次请求能否抢到该商品
 	rate := rand.Float64()
-	if rate > product.BuyRate {
+	if rate > activity.BuyRate {
 		res.Code = ErrReTry
 		logs.Warn("handle user request end! request: %v, result: %v", req, "ErrReTry: rate failed")
 		return
 	}
 
 	// 到这里，说明用户此处秒杀成功，抢到当前商品
-	userHistory.Increment(req.ProductId, 1)
-	secLayerContext.ProductCountManager.Increment(req.ProductId, 1)
+	userHistory.Increment(req.ActivityId, 1)
+	secLayerContext.ProductCountManager.Increment(req.ActivityId, 1)
 
 	// 为用户此次秒杀创建token
 	curTime := time.Now().Unix()
-	tokenStr := fmt.Sprintf("userid=%d&productid=%d&timestamp=%d&security=%s",
-		req.UserId, req.ProductId, curTime, secLayerContext.SecLayerConfig.SeckillTokenPasswd)
+	tokenStr := fmt.Sprintf("userid=%d&activityid=%d&timestamp=%d&security=%s",
+		req.UserId, req.ActivityId, curTime, secLayerContext.SecLayerConfig.SeckillTokenPasswd)
 	res.Token = fmt.Sprintf("%x", md5.Sum([]byte(tokenStr)))
 	res.TokenTime = curTime
 

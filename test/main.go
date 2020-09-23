@@ -24,17 +24,17 @@ func main() {
 
 	// 每个并发需要发送的请求数
 	requestsPerConcurrent := *requestNum / *concurrentNum
-	pid := 0
+	activityId := 0
 	start := time.Now()
 	for i := 1; i <= *concurrentNum; i++ {
 		userid := 1000 + i
 
 		if i % 2 == 0 {
-			pid = 1028
+			activityId = 11
 		} else {
-			pid = 1029
+			activityId = 11
 		}
-		go mockUserRequest(wg, userid, pid, requestsPerConcurrent, chanInt)
+		go mockUserRequest(wg, userid, activityId, requestsPerConcurrent, chanInt)
 		wg.Add(1)
 	}
 
@@ -49,10 +49,10 @@ func main() {
 }
 
 // 模拟用户请求
-func mockUserRequest(wg *sync.WaitGroup, userid int, pid int, requestNum int, in chan int) {
+func mockUserRequest(wg *sync.WaitGroup, userid int, activityId int, requestNum int, in chan int) {
 	defer wg.Done()
 	for i := 1; i <= requestNum; i++ {
-		url := fmt.Sprintf("http://localhost:8083/seckill?product_id=%d&src=111&authcode=222&time=333&nance=444&userid=%d", pid, userid + i * 10000)
+		url := fmt.Sprintf("http://localhost:8083/seckill?activity_id=%d&src=111&authcode=222&time=333&nance=444&userid=%d", activityId, userid + i * 10000)
 
 		needContinue := false
 		var data []byte

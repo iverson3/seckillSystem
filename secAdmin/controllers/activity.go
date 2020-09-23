@@ -70,10 +70,12 @@ func (this *ActivityController) CreateActivity() {
 		}
 
 		model := models.NewActivityModel()
-		err = model.CreateNewActivity(activity)
+		newActivityId, err := model.CreateNewActivity(activity)
 		if err != nil {
 			return
 		}
+		// 得到新插入数据库记录的主键Id
+		activity.Id = int(newActivityId)
 
 		etcdModel := models.NewEtcdModel()
 		err = etcdModel.SyncActivityToEtcd(activity)

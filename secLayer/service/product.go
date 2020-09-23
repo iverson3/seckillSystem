@@ -7,13 +7,13 @@ import (
 	"go.etcd.io/etcd/mvcc/mvccpb"
 )
 
-// 监听商品信息的变化
-func watchSecProductChange(conf *SecLayerConf) {
-	key := conf.Etcd.EtcdSecProductKey
+// 监听etcd中秒杀活动数据的变化
+func watchSecActivityChange(conf *SecLayerConf) {
+	key := conf.Etcd.EtcdSecActivityKey
 	for {
 		watchChan := secLayerContext.EtcdClient.Watch(context.Background(), key)
 
-		var secProductInfoList []SecProductInfoConf
+		var secActivityList []SecActivityConf
 		var getConfSucc = true
 		for watchResp := range watchChan {
 			for _, ev := range watchResp.Events {
@@ -23,7 +23,7 @@ func watchSecProductChange(conf *SecLayerConf) {
 				}
 
 				if ev.Type == mvccpb.PUT && string(ev.Kv.Key) == key {
-					err := json.Unmarshal(ev.Kv.Value, &secProductInfoList)
+					err := json.Unmarshal(ev.Kv.Value, &secActivityList)
 					if err != nil {
 						logs.Error("key[%s],json Unmarshal[%s] failed! error: %v", key, string(ev.Kv.Value), err)
 						getConfSucc = false
@@ -34,22 +34,22 @@ func watchSecProductChange(conf *SecLayerConf) {
 			}
 
 			if getConfSucc {
-				logs.Debug("get config from etcd success! config: %v", secProductInfoList)
-				updateSecProductInfoList(conf, secProductInfoList)
+				logs.Debug("get config from etcd success! config: %v", secActivityList)
+				updateSecActivityList(conf, secActivityList)
 			}
 		}
 	}
 }
 
-func updateSecProductInfoList(conf *SecLayerConf, productList []SecProductInfoConf) {
-	tmpProductListMap := make(map[int]*SecProductInfoConf)
-	for _, v := range productList {
-		product := v  // 解决bug
-		product.SecSoldLimit = &SecLimit{}
-		tmpProductListMap[v.ProductId] = &product
+func updateSecActivityList(conf *SecLayerConf, activityList []SecActivityConf) {
+	tmpActivityListMap := make(map[int]*SecActivityConf)
+	for _, v := range activityList {
+		activity := v  // 解决bug
+		activity.SecSoldLimit = &SecLimit{}
+		tmpActivityListMap[v.ActivityId] = &activity
 	}
 
-	secLayerContext.SecProductRwLock.Lock()
-	conf.SecProductInfo = tmpProductListMap
-	secLayerContext.SecProductRwLock.Unlock()
+	secLayerContext.SecActivityRwLock.Lock()
+	conf.SecActivityListMap = tmpActivityListMap
+	secLayerContext.SecActivityRwLock.Unlock()
 }

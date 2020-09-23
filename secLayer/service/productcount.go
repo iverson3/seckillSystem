@@ -8,27 +8,28 @@ type ProductCountMgr struct {
 	lock sync.RWMutex
 }
 
+// 创建一个管理活动商品的数量的计数器
 func NewProductCountMgr() *ProductCountMgr {
 	return &ProductCountMgr{
 		ProductCount: make(map[int]int, 128),
 	}
 }
 
-func (this *ProductCountMgr) Count(pid int) int {
+func (this *ProductCountMgr) Count(activityId int) int {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
-	return this.ProductCount[pid]
+	return this.ProductCount[activityId]
 }
 
-func (this *ProductCountMgr) Increment(pid, count int) {
+func (this *ProductCountMgr) Increment(activityId, count int) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	sum, ok := this.ProductCount[pid]
+	sum, ok := this.ProductCount[activityId]
 	if !ok {
-		this.ProductCount[pid] = count
+		this.ProductCount[activityId] = count
 	} else {
-		this.ProductCount[pid] = sum + count
+		this.ProductCount[activityId] = sum + count
 	}
 }

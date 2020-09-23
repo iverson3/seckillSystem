@@ -8,23 +8,23 @@ type UserBuyHistory struct {
 	lock sync.RWMutex
 }
 
-func (this *UserBuyHistory) Increment(pid, count int) {
+func (this *UserBuyHistory) Increment(activityId, count int) {
 	this.lock.Lock()
 	defer this.lock.Unlock()
 
-	num, ok := this.history[pid]
+	num, ok := this.history[activityId]
 	if !ok {
-		this.history[pid] = count
+		this.history[activityId] = count
 	} else {
-		this.history[pid] = num + count
+		this.history[activityId] = num + count
 	}
 }
 
-func (this *UserBuyHistory) GetProductBuyCount(pid int) (count int) {
+func (this *UserBuyHistory) GetProductBuyCount(activityId int) (count int) {
 	this.lock.RLock()
 	defer this.lock.RUnlock()
 
-	count, ok := this.history[pid]
+	count, ok := this.history[activityId]
 	if !ok {
 		count = 0
 	}

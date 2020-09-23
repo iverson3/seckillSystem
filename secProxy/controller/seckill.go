@@ -14,19 +14,28 @@ type SeckillController struct {
 }
 
 func (this *SeckillController) SecKill()  {
+	var userid int
+	needDelRequestFromMap := false
 	res := make(map[string]interface{})
 	res["code"] = service.ErrRequestSuccess
 	res["message"] = "success"
 
+
 	defer func() {
+		// 判断是否需要从requestMap中删除当前用户请求的request
+		if needDelRequestFromMap {
+			service.SeckillConfig.ReqMapLock.Lock()
+			delete(service.SeckillConfig.SecRequestMap, userid)
+			service.SeckillConfig.ReqMapLock.Unlock()
+		}
 		this.Data["json"] = res
 		this.ServeJSON()
 	}()
 
-	pid, err := this.GetInt("product_id")
+	activityId, err := this.GetInt("activity_id")
 	if err != nil {
 		res["code"] = service.ErrParamDeletion
-		res["message"] = "product_id is null"
+		res["message"] = "activity_id is null"
 		return
 	}
 
@@ -57,7 +66,7 @@ func (this *SeckillController) SecKill()  {
 	//}
 
 	// 临时获取userId的方式
-	userid, err := this.GetInt("userid")
+	userid, err = this.GetInt("userid")
 	if err != nil {
 		res["code"] = service.ErrParamDeletion
 		res["message"] = "userid is null"
@@ -81,7 +90,7 @@ func (this *SeckillController) SecKill()  {
 	secRequest := &service.SecRequest{
 		UserId:        userid,
 		UserAuthSign:  userauthsign,
-		ProductId:     pid,
+		ActivityId:    activityId,
 		Source:        source,
 		AuthCode:      authCode,
 		SecTime:       secTime,
@@ -94,6 +103,8 @@ func (this *SeckillController) SecKill()  {
 	service.SeckillConfig.ReqMapLock.Lock()
 	service.SeckillConfig.SecRequestMap[userid] = secRequest
 	service.SeckillConfig.ReqMapLock.Unlock()
+	// 上面将request加入了map中，则标记defer中需要从map中删除该request
+	needDelRequestFromMap = true
 
 	_, code, err := service.SeckillProcess(secRequest)
 	if err != nil {
@@ -115,10 +126,6 @@ func (this *SeckillController) SecKill()  {
 
 	// 在指定的超时时间内 没有从redis中读取到请求的处理结果
 	if result == nil {
-		service.SeckillConfig.ReqMapLock.Lock()
-		delete(service.SeckillConfig.SecRequestMap, userid)
-		service.SeckillConfig.ReqMapLock.Unlock()
-
 		logs.Error("got response from response_channel is timeout.............................")
 		res["code"] = service.ErrServiceBusy
 		res["message"] = "service busy"
@@ -145,9 +152,9 @@ func (this *SeckillController) SecInfo() {
 		this.ServeJSON()
 	}()
 
-	pid, err := this.GetInt("product_id")
+	activityId, err := this.GetInt("activity_id")
 	if err != nil {
-		// 获取秒杀商品列表
+		// 获取秒杀活动列表
 		list, code, err := service.SecInfoList()
 		if err != nil {
 			logs.Error("service deal failed! error: %v", err)
@@ -157,8 +164,8 @@ func (this *SeckillController) SecInfo() {
 		}
 		res["data"] = list
 	} else {
-		// 获取指定的秒杀商品的状态信息
-		data, code, err := service.SecInfo(pid)
+		// 获取指定的秒杀活动的状态信息
+		data, code, err := service.SecInfo(activityId)
 		if err != nil {
 			logs.Error("service deal failed! error: %v", err)
 			res["code"] = code

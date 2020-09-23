@@ -20,35 +20,27 @@ func initEtcd(conf *SecLayerConf) (err error) {
 	return
 }
 
-// 从etcd服务读取秒杀商品数据
-func loadProductFromEtcd(conf *SecLayerConf) (err error) {
+// 从etcd服务读取秒杀活动数据
+func loadActivityFromEtcd(conf *SecLayerConf) (err error) {
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second*10)
-	response, err := secLayerContext.EtcdClient.Get(ctx, conf.Etcd.EtcdSecProductKey)
+	response, err := secLayerContext.EtcdClient.Get(ctx, conf.Etcd.EtcdSecActivityKey)
 	if err != nil {
-		logs.Error("get [%s] from etcd failed! error: %v", conf.Etcd.EtcdSecProductKey, err)
+		logs.Error("get [%s] from etcd failed! error: %v", conf.Etcd.EtcdSecActivityKey, err)
 		return
 	}
 	cancelFunc()
+	logs.Debug("got activity from etcd success! activity list: %v", response.Kvs)
 
-	logs.Debug("load product from etcd success")
-
-	logs.Debug("response from etcd is [%v]", response.Kvs)
-
-	var secProductInfoList []SecProductInfoConf
-	for k, v := range response.Kvs {
-		logs.Debug("key[%v] value[%v]", k, v)
-
-		err = json.Unmarshal(v.Value, &secProductInfoList)
+	var secActivityList []SecActivityConf
+	for _, v := range response.Kvs {
+		err = json.Unmarshal(v.Value, &secActivityList)
 		if err != nil {
-			logs.Error("json Unmarshal seckill product info failed! error: %v", err)
+			logs.Error("json Unmarshal seckill activity list failed! error: %v", err)
 			return
 		}
-
-		logs.Debug("seckill product info is [%v]", secProductInfoList)
 	}
+	logs.Debug("activity list from etcd: %v", secActivityList)
 
-	logs.Debug("product info from etcd: %v", secProductInfoList)
-
-	updateSecProductInfoList(conf, secProductInfoList)
+	updateSecActivityList(conf, secActivityList)
 	return
 }

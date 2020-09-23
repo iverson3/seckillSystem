@@ -49,12 +49,12 @@ func initConfig(confType, filename string) (err error) {
 		etcdSecKeyPrefix = etcdSecKeyPrefix + "/"
 	}
 	AppConfig.Etcd.EtcdSecKeyPrefix = etcdSecKeyPrefix
-	etcdSecProductKey := conf.String("etcd::etcd_sec_product_key")
-	if len(etcdSecProductKey) == 0 {
-		logs.Error("read etcd::etcd_sec_product_key from config-file failed")
-		return fmt.Errorf("read etcd::etcd_sec_product_key from config-file failed")
+	etcdSecActivityKey := conf.String("etcd::etcd_sec_activity_key")
+	if len(etcdSecActivityKey) == 0 {
+		logs.Error("read etcd::etcd_sec_activity_key from config-file failed")
+		return fmt.Errorf("read etcd::etcd_sec_activity_key from config-file failed")
 	}
-	AppConfig.Etcd.EtcdSecProductKey = fmt.Sprintf("%s%s", etcdSecKeyPrefix, etcdSecProductKey)
+	AppConfig.Etcd.EtcdSecActivityKey = fmt.Sprintf("%s%s", etcdSecKeyPrefix, etcdSecActivityKey)
 	etcdSecBlackListKey := conf.String("etcd::etcd_sec_black_list_key")
 	if len(etcdSecBlackListKey) == 0 {
 		logs.Error("read etcd::etcd_sec_black_list_key from config-file failed")

@@ -7,9 +7,9 @@ import (
 )
 
 var (
-	ProductStatusNormal       = 0
-	ProductStatusSoldOut      = 1
-	ProductStatusForceSoldOut = 2
+	ActivityStatusNormal       = 0
+	ActivityStatusSoldOut      = 1
+	ActivityStatusForceSoldOut = 2
 )
 
 type RedisConf struct {
@@ -23,10 +23,10 @@ type RedisConf struct {
 }
 
 type EtcdConf struct {
-	EtcdAddr string
-	EtcdTimeout int
-	EtcdSecKeyPrefix string
-	EtcdSecProductKey string
+	EtcdAddr           string
+	EtcdTimeout        int
+	EtcdSecKeyPrefix   string
+	EtcdSecActivityKey string
 }
 
 type LogConf struct {
@@ -35,16 +35,16 @@ type LogConf struct {
 }
 
 type SeckillConf struct {
-	Redis RedisConf
-	BlackListRedis RedisConf
-	Etcd EtcdConf
-	Log LogConf
-	SecProductInfo map[int]*SecProductInfoConf
-	RwLock sync.RWMutex  // 读写锁
-	CookieSecretKey string
+	Redis                    RedisConf
+	BlackListRedis           RedisConf
+	Etcd                     EtcdConf
+	Log                      LogConf
+	SecActivityListMap       map[int]*SecActivityConf
+	RwLock                   sync.RWMutex  // 读写锁
+	CookieSecretKey          string
 	UserAccessLimitPerSecond int
-	IpAccessLimitPerSecond int
-	RefererWhiteList []string
+	IpAccessLimitPerSecond   int
+	RefererWhiteList         []string
 
 	IpBlackList map[string]bool
 	IdBlackList map[int]bool
@@ -64,27 +64,31 @@ type SeckillConf struct {
 	ReqMapLock sync.RWMutex
 }
 
-// 秒杀商品的相关信息结构
-type SecProductInfoConf struct {
+// 秒杀活动的相关信息结构
+type SecActivityConf struct {
+	ActivityId int
 	ProductId int
 	Total int
 	Left int
 	Status int
 	StartTime int64
 	EndTime int64
+	BuyRate float64     // 秒杀成功的概率 (用户到达秒杀系统逻辑层 能够抢到该商品的概率)
+	UserMaxBuyLimit int // 对于当前商品，每个用户最多可以购买的数量
+	MaxSoldLimit int    // 商品每秒的秒杀数量限制
 }
 
 // 秒杀请求的相关信息 (请求参数 ip地址 请求时间等)
 type SecRequest struct {
-	UserId int
-	UserAuthSign string
-	ProductId int
-	Source string
-	AuthCode string
-	SecTime string
-	Nance string
-	AccessTime time.Time   // 请求到达服务器的时间 (用作检测恶意请求使用)
-	ClientAddr string
+	UserId        int
+	UserAuthSign  string
+	ActivityId    int
+	Source        string
+	AuthCode      string
+	SecTime       string
+	Nance         string
+	AccessTime    time.Time   // 请求到达服务器的时间 (用作检测恶意请求使用)
+	ClientAddr    string
 	ClientReferer string
 
 	//CloseNotify <-chan bool `json:"-"`       // json序列化的时候忽略该字段
@@ -92,9 +96,9 @@ type SecRequest struct {
 }
 
 type SecResponse struct {
-	UserId int
-	ProductId int
-	Token string
-	TokenTime int64
-	Code int
+	UserId     int
+	ActivityId int
+	Token      string
+	TokenTime  int64
+	Code       int
 }

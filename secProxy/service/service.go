@@ -7,20 +7,20 @@ import (
 	"time"
 )
 
-// 获取指定的秒杀商品的状态信息
-func SecInfo(pid int) (data []map[string]interface{}, code int, err error) {
+// 获取指定的秒杀活动的状态信息
+func SecInfo(activityId int) (data []map[string]interface{}, code int, err error) {
 	SeckillConfig.RwLock.RLock()
 	defer SeckillConfig.RwLock.RUnlock()
 
-	product, ok := SeckillConfig.SecProductInfo[pid]
+	product, ok := SeckillConfig.SecActivityListMap[activityId]
 	if !ok {
-		code = ErrNotFoundProductId
-		err = fmt.Errorf("not found product_id: %d", pid)
+		code = ErrNotFoundActivityId
+		err = fmt.Errorf("not found activity_id: %d", activityId)
 		return
 	}
 
 	data = make([]map[string]interface{}, 0)
-	item := getSecInfoByProductConf(product)
+	item := getSecInfoByActivityConf(product)
 	data = append(data, item)
 	return
 }
@@ -31,42 +31,43 @@ func SecInfoList() (data []map[string]interface{}, code int, err error) {
 	defer SeckillConfig.RwLock.RUnlock()
 
 	data = make([]map[string]interface{}, 0)
-	for id, product := range SeckillConfig.SecProductInfo {
+	for id, activity := range SeckillConfig.SecActivityListMap {
 		logs.Info(id)
-		item := getSecInfoByProductConf(product)
+		item := getSecInfoByActivityConf(activity)
 		data = append(data, item)
 	}
 	return
 }
 
 // 格式化秒杀商品的状态信息 (便于客户端显示)
-func getSecInfoByProductConf(product *SecProductInfoConf) (item map[string]interface{}) {
+func getSecInfoByActivityConf(activity *SecActivityConf) (item map[string]interface{}) {
 	start := false
 	end := false
 	status := "seckill is not start"
 
 	now := time.Now().Unix()
-	if now >= product.EndTime {
+	if now >= activity.EndTime {
 		end = true
 		status = "seckill is already end"
 	} else {
-		if now >= product.StartTime {
+		if now >= activity.StartTime {
 			start = true
 			status = "seckill is already start"
 		}
 	}
 
-	if product.Status == ProductStatusForceSoldOut || product.Status == ProductStatusSoldOut {
+	if activity.Status == ActivityStatusForceSoldOut || activity.Status == ActivityStatusSoldOut {
 		start = false
 		end   = true
 		status = "product had sale out"
 	}
 
 	item = make(map[string]interface{})
-	item["product_id"] = product.ProductId
-	item["start"]      = start
-	item["end"]        = end
-	item["status"]     = status
+	item["activity_id"] = activity.ActivityId
+	item["product_id"]  = activity.ProductId
+	item["start"]       = start
+	item["end"]         = end
+	item["status"]      = status
 	return
 }
 
@@ -110,15 +111,15 @@ func SeckillProcess(req *SecRequest) (data map[string]interface{}, code int, err
 	//	return nil, ErrServiceBusy, err
 	//}
 
-	res, code, err := SecInfo(req.ProductId)
+	res, code, err := SecInfo(req.ActivityId)
 	if err != nil {
 		logs.Error("get userId[%d] secInfo failed! req: %v; error: %v", req.UserId, req, err)
 		return
 	}
 	// 秒杀还未开始或已经结束 直接返回
 	if res[0]["start"] == false || res[0]["end"] == true {
-		logs.Debug("seckill is over or isn't started; req: %v", req)
-		err = fmt.Errorf("seckill is over")
+		logs.Debug("seckill activity is over or isn't started; req: %v", req)
+		err = fmt.Errorf("seckill activity is over")
 		code = ErrRequestSuccess
 		return
 	}

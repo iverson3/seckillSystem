@@ -19,12 +19,12 @@ func InitSecLayer(conf *SecLayerConf) (err error) {
 	}
 	logs.Debug("init etcd succ")
 
-	err = loadProductFromEtcd(conf)
+	err = loadActivityFromEtcd(conf)
 	if err != nil {
-		logs.Error("load product from etcd failed! error: %v", err)
+		logs.Error("load activity list from etcd failed! error: %v", err)
 		return
 	}
-	logs.Debug("load product succ")
+	logs.Debug("load activity list success!")
 
 	secLayerContext.SecLayerConfig = conf
 	secLayerContext.Read2HandleChan  = make(chan *SecRequest, conf.Read2HandleChanSize)
@@ -32,7 +32,7 @@ func InitSecLayer(conf *SecLayerConf) (err error) {
 	secLayerContext.UserBuyHistoryMap = make(map[int]*UserBuyHistory, 100000)
 	secLayerContext.ProductCountManager = NewProductCountMgr()
 
-	go watchSecProductChange(conf)
+	go watchSecActivityChange(conf)
 
 	return
 }

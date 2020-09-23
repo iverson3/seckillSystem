@@ -31,12 +31,13 @@ type Activity struct {
 }
 
 type SecActivityConf struct {
+	ActivityId int
 	ProductId int
 	Total int
 	Left int
 	Status int
-	StartTime int
-	EndTime int
+	StartTime int64
+	EndTime int64
 	BuyRate float64     // 秒杀成功的概率 (用户到达秒杀系统逻辑层 能够抢到该商品的概率)
 	UserMaxBuyLimit int // 对于当前商品，每个用户最多可以购买的数量
 	MaxSoldLimit int    // 商品每秒的秒杀数量限制
@@ -87,12 +88,14 @@ func (this *ActivityModel) GetActivityList() (list []*Activity, err error) {
 	return
 }
 
-func (this *ActivityModel) CreateNewActivity(a *Activity) (err error) {
+func (this *ActivityModel) CreateNewActivity(a *Activity) (id int64, err error) {
 	sql := "insert into activity(name,pid,start_time,end_time,buy_rate,total,status,buy_limit,sold_limit_second,create_time) values(?,?,?,?,?,?,?,?,?,?)"
-	_, err = Db.Exec(sql, a.Name, a.ProductId, a.StartTime, a.EndTime, a.BuyRate, a.Total, a.Status, a.BuyLimit, a.SoldLimitSecond, a.CreateTime)
+	result, err := Db.Exec(sql, a.Name, a.ProductId, a.StartTime, a.EndTime, a.BuyRate, a.Total, a.Status, a.BuyLimit, a.SoldLimitSecond, a.CreateTime)
 	if err != nil {
 		logs.Error("insert data into activity failed! sql: %v, error: %v", sql, err)
 		return
 	}
+
+	id, _ = result.LastInsertId()
 	return
 }

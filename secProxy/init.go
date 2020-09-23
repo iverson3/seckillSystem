@@ -80,23 +80,23 @@ func initEtcd() (err error) {
 
 // 加载秒杀商品相关的配置信息
 func loadSeckillConf() (err error) {
-	// 从etcd服务读取秒杀商品信息
-	response, err := etcdClient.Get(context.Background(), seckillConf.Etcd.EtcdSecProductKey)
+	// 从etcd服务读取秒杀活动信息
+	response, err := etcdClient.Get(context.Background(), seckillConf.Etcd.EtcdSecActivityKey)
 	if err != nil {
 		return
 	}
+	logs.Debug("got activity from etcd success! activity list: %v", response.Kvs)
 
-	var secProductInfoList []service.SecProductInfoConf
-	for k, v := range response.Kvs {
-		logs.Debug("key[%v] value[%v]", k, v)
-
-		err = json.Unmarshal(v.Value, &secProductInfoList)
+	var secActivityList []service.SecActivityConf
+	for _, v := range response.Kvs {
+		err = json.Unmarshal(v.Value, &secActivityList)
 		if err != nil {
 			return
 		}
 	}
+	logs.Debug("activity list from etcd: %v", secActivityList)
 
-	updateSecProductInfoList(secProductInfoList)
+	updateSecActivityInfoList(secActivityList)
 	return
 }
 
@@ -130,18 +130,18 @@ func initSeckill() (err error) {
 		logs.Error("init service failed! error: %v", err)
 		return
 	}
-	go watchSecProductChange(seckillConf.Etcd.EtcdSecProductKey)
+	go watchSecActivityChange(seckillConf.Etcd.EtcdSecActivityKey)
 
 	logs.Info("init seckill success!")
 	return
 }
 
-// 监听商品信息的变化
-func watchSecProductChange(key string) {
+// 监听etcd中秒杀活动数据的变化
+func watchSecActivityChange(key string) {
 	for {
 		watchChan := etcdClient.Watch(context.Background(), key)
 
-		var secProductInfoList []service.SecProductInfoConf
+		var secActivityList []service.SecActivityConf
 		var getConfSucc = true
 		for watchResp := range watchChan {
 			for _, ev := range watchResp.Events {
@@ -151,7 +151,7 @@ func watchSecProductChange(key string) {
 				}
 
 				if ev.Type == mvccpb.PUT && string(ev.Kv.Key) == key {
-					err := json.Unmarshal(ev.Kv.Value, &secProductInfoList)
+					err := json.Unmarshal(ev.Kv.Value, &secActivityList)
 					if err != nil {
 						logs.Error("key[%s],json Unmarshal[%s] failed! error: %v", key, string(ev.Kv.Value), err)
 						getConfSucc = false
@@ -162,21 +162,21 @@ func watchSecProductChange(key string) {
 			}
 
 			if getConfSucc {
-				logs.Debug("get config from etcd success! config: %v", secProductInfoList)
-				updateSecProductInfoList(secProductInfoList)
+				logs.Debug("get config from etcd success! config: %v", secActivityList)
+				updateSecActivityInfoList(secActivityList)
 			}
 		}
 	}
 }
 
-func updateSecProductInfoList(productList []service.SecProductInfoConf) {
-	tmpProductListMap := make(map[int]*service.SecProductInfoConf)
-	for _, v := range productList {
-		product := v  // 解决bug
-		tmpProductListMap[v.ProductId] = &product
+func updateSecActivityInfoList(secActivityList []service.SecActivityConf) {
+	tmpActivityListMap := make(map[int]*service.SecActivityConf)
+	for _, v := range secActivityList {
+		activity := v  // 解决bug
+		tmpActivityListMap[v.ActivityId] = &activity
 	}
 
 	seckillConf.RwLock.Lock()
-	seckillConf.SecProductInfo = tmpProductListMap
+	seckillConf.SecActivityListMap = tmpActivityListMap
 	seckillConf.RwLock.Unlock()
 }

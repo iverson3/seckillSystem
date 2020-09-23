@@ -58,9 +58,9 @@ func initMysqlConf() (models.MysqlConfig, error) {
 func initEtcdConf() (models.EtcdConfig, error) {
 	addr         := beego.AppConfig.String("etcd_addr")
 	keyPrefix    := beego.AppConfig.String("etcd_sec_key_prefix")
-	productKey   := beego.AppConfig.String("etcd_sec_product_key")
+	activityKey   := beego.AppConfig.String("etcd_sec_activity_key")
 	timeout, err := beego.AppConfig.Int("etcd_timeout")
-	if len(addr) == 0 || len(keyPrefix) == 0 || len(productKey) == 0 || err != nil || timeout == 0 {
+	if len(addr) == 0 || len(keyPrefix) == 0 || len(activityKey) == 0 || err != nil || timeout == 0 {
 		return models.EtcdConfig{}, fmt.Errorf("init etcd config failed, some config field is null")
 	}
 	if !strings.HasSuffix(keyPrefix, "/") {
@@ -68,10 +68,10 @@ func initEtcdConf() (models.EtcdConfig, error) {
 	}
 
 	etcd := models.EtcdConfig{
-		Addr:         addr,
-		Timeout:      timeout,
-		KeyPrefix:    keyPrefix,
-		ProductKey: fmt.Sprintf("%s%s", keyPrefix, productKey),
+		Addr:        addr,
+		Timeout:     timeout,
+		KeyPrefix:   keyPrefix,
+		ActivityKey: fmt.Sprintf("%s%s", keyPrefix, activityKey),
 	}
 	return etcd, nil
 }
