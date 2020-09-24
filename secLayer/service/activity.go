@@ -91,6 +91,7 @@ func syncActivityChangeToEtcd(activity *SecActivityConf) {
 	for _, v := range secActivityList {
 		if v.ActivityId == activity.ActivityId {
 			v.Status = activity.Status
+			v.Left   = activity.Left
 			break
 		}
 	}

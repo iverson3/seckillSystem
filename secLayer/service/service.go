@@ -187,7 +187,7 @@ func handleSeckill(req *SecRequest) (res *SecResponse, err error) {
 	}
 	secLayerContext.HistoryMapLock.Unlock()
 
-	count := userHistory.GetProductBuyCount(req.ActivityId)
+	count := userHistory.GetProductBuyCount(activity.ActivityId)
 	if count >= activity.UserMaxBuyLimit {
 		res.Code = ErrAlreadyBuy
 		logs.Warn("handle user request end! request: %v, result: %v", req, "ErrAlreadyBuy")
@@ -195,7 +195,7 @@ func handleSeckill(req *SecRequest) (res *SecResponse, err error) {
 	}
 
 	// 秒杀商品已售出的数量到达了该商品的最大库存数
-	soldCount := secLayerContext.ProductCountManager.Count(req.ActivityId)
+	soldCount := secLayerContext.ProductCountManager.Count(activity.ActivityId)
 	if soldCount >= activity.Total {
 		res.Code = ErrActivityProductSoldOut
 		activity.Status = ActivityStatusSoldOut
@@ -214,13 +214,18 @@ func handleSeckill(req *SecRequest) (res *SecResponse, err error) {
 	}
 
 	// 到这里，说明用户此处秒杀成功，抢到当前商品
-	userHistory.Increment(req.ActivityId, 1)
-	secLayerContext.ProductCountManager.Increment(req.ActivityId, 1)
+	userHistory.Increment(activity.ActivityId, 1)
+	secLayerContext.ProductCountManager.Increment(activity.ActivityId, 1)
+
+	// 计算秒杀活动剩余的商品数量
+	//soldCount = secLayerContext.ProductCountManager.Count(activity.ActivityId)
+	//activity.Left = activity.Total - soldCount
+	//syncActivityChangeToEtcd(activity)
 
 	// 为用户此次秒杀创建token
 	curTime := time.Now().Unix()
 	tokenStr := fmt.Sprintf("userid=%d&activityid=%d&timestamp=%d&security=%s",
-		req.UserId, req.ActivityId, curTime, secLayerContext.SecLayerConfig.SeckillTokenPasswd)
+		req.UserId, activity.ActivityId, curTime, secLayerContext.SecLayerConfig.SeckillTokenPasswd)
 	res.Token = fmt.Sprintf("%x", md5.Sum([]byte(tokenStr)))
 	res.TokenTime = curTime
 
