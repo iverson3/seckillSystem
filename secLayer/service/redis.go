@@ -6,14 +6,14 @@ import (
 	"time"
 )
 
-func initRedis(conf *SecLayerConf) (err error) {
-	secLayerContext.Proxy2LayerRedisPool, err = initAndGetRedisPool(conf.Proxy2LayerRedis)
+func initRedis() (err error) {
+	secLayerContext.Proxy2LayerRedisPool, err = initAndGetRedisPool(secLayerContext.SecLayerConfig.Proxy2LayerRedis)
 	if err != nil {
 		logs.Error("init Proxy2LayerRedisPool failed! error: %v", err)
 		return
 	}
 
-	secLayerContext.Layer2ProxyRedisPool, err = initAndGetRedisPool(conf.Layer2ProxyRedis)
+	secLayerContext.Layer2ProxyRedisPool, err = initAndGetRedisPool(secLayerContext.SecLayerConfig.Layer2ProxyRedis)
 	if err != nil {
 		logs.Error("init Layer2ProxyRedisPool failed! error: %v", err)
 		return

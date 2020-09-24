@@ -47,7 +47,7 @@ type SecActivityConf struct {
 	UserMaxBuyLimit int // 对于当前商品，每个用户最多可以购买的数量
 	MaxSoldLimit int    // 商品每秒的秒杀数量限制
 
-	SecSoldLimit *SecLimit  // 限速控制器
+	SecSoldLimit *SecLimit `json:"-"`  // 限速控制器
 }
 
 type SecLayerConf struct {

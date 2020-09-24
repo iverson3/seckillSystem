@@ -6,9 +6,10 @@ import (
 )
 
 const (
-	ActivityStatusNormal  = 0
-	ActivityStatusDisable = 1
-	ActivityStatusExpire  = 2
+	ActivityStatusNormal  = 0    // 正常可用
+	ActivityStatusDisable = 1    // 禁用
+	ActivityStatusSoldOut = 2    // 售罄
+	ActivityStatusExpire  = 3    // 过期或结束
 )
 
 type Activity struct {
@@ -19,6 +20,7 @@ type Activity struct {
 	EndTime int64 `db:"end_time" form:"-"`
 	BuyRate float64 `db:"buy_rate" form:"buy_rate"`
 	Total int `db:"total" form:"total"`
+	Left int `db:"left" form:"-"`
 	Status int `db:"status" form:"status"`
 	BuyLimit int `db:"buy_limit" form:"buy_limit"`
 	SoldLimitSecond int `db:"sold_limit_second" form:"sold_limit_second"`
@@ -69,13 +71,20 @@ func (this *ActivityModel) GetActivityList() (list []*Activity, err error) {
 
 		now := time.Now().Unix()
 		if now >= v.EndTime {
-			v.Status = ActivityStatusExpire
+			if v.Status != ActivityStatusExpire {
+				v.Status = ActivityStatusExpire
+				go updateActivityExpireStatusToDb(v.Id, v.Status)
+			}
 			v.StatusStr = "已结束"
 			continue
 		}
 
 		if v.Status == ActivityStatusDisable {
 			v.StatusStr = "已禁用"
+			continue
+		}
+		if v.Status == ActivityStatusSoldOut {
+			v.StatusStr = "商品已售罄"
 			continue
 		}
 
@@ -89,8 +98,8 @@ func (this *ActivityModel) GetActivityList() (list []*Activity, err error) {
 }
 
 func (this *ActivityModel) CreateNewActivity(a *Activity) (id int64, err error) {
-	sql := "insert into activity(name,pid,start_time,end_time,buy_rate,total,status,buy_limit,sold_limit_second,create_time) values(?,?,?,?,?,?,?,?,?,?)"
-	result, err := Db.Exec(sql, a.Name, a.ProductId, a.StartTime, a.EndTime, a.BuyRate, a.Total, a.Status, a.BuyLimit, a.SoldLimitSecond, a.CreateTime)
+	sql := "insert into activity(name,pid,start_time,end_time,buy_rate,total,`left`,status,buy_limit,sold_limit_second,create_time) values(?,?,?,?,?,?,?,?,?,?,?)"
+	result, err := Db.Exec(sql, a.Name, a.ProductId, a.StartTime, a.EndTime, a.BuyRate, a.Total, a.Left, a.Status, a.BuyLimit, a.SoldLimitSecond, a.CreateTime)
 	if err != nil {
 		logs.Error("insert data into activity failed! sql: %v, error: %v", sql, err)
 		return
@@ -98,4 +107,33 @@ func (this *ActivityModel) CreateNewActivity(a *Activity) (id int64, err error) 
 
 	id, _ = result.LastInsertId()
 	return
+}
+
+// 将活动结束的状态更新到数据库
+func updateActivityExpireStatusToDb(id int, status int) {
+	sql := "update activity set status=? where id=?"
+	_, err := Db.Exec(sql, status, id)
+	if err != nil {
+		logs.Error("update column<status> for activity_table failed! activity_id: %d, status: %d, error: %v", id, status, err)
+	} else {
+		logs.Info("update column<status> for activity_table success! activity_id: %d, status: %d", id, status)
+	}
+}
+
+// 将etcd中获取到的活动数据更新到数据库 (主要更新left和status字段 即活动商品的剩余数量和活动的状态)
+func updateActivityToDb(activityList *[]SecActivityConf) {
+	now := time.Now().Unix()
+	for _, v := range *activityList {
+		if v.Status == ActivityStatusDisable || v.Status == ActivityStatusExpire || v.EndTime <= now {
+			continue
+		}
+		sql := "update activity set `left`=?,status=? where id=?"
+
+		_, err := Db.Exec(sql, v.Left, v.Status, v.ActivityId)
+		if err != nil {
+			logs.Error("update column<left> for activity_table failed! activity_id: %d, left: %d, error: %v", v.ActivityId, v.Left, err)
+		} else {
+			logs.Info("update column<left> for activity_table success! activity_id: %d, left: %d", v.ActivityId, v.Left)
+		}
+	}
 }

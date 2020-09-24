@@ -1,7 +1,6 @@
 package service
 
 // 错误码
-
 const (
 	ErrRequestSuccess      = 1000
 	ErrInvalidRequest      = 1001 // 无效的请求

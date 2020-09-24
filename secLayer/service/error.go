@@ -7,5 +7,6 @@ const (
 	ErrActivityProductSoldOut = 1003
 	ErrReTry                  = 1004
 	ErrAlreadyBuy             = 1005
+	ErrActivityOver           = 1006
 )
 

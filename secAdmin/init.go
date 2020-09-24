@@ -31,6 +31,8 @@ func Init() (err error) {
 
 	models.SetDb(Db)
 	models.SetEtcd(EtcdClient, AppConf.etcd)
+
+	go models.WatchEtcdActivityChange()
 	return
 }
 

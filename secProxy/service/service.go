@@ -12,7 +12,7 @@ func SecInfo(activityId int) (data []map[string]interface{}, code int, err error
 	SeckillConfig.RwLock.RLock()
 	defer SeckillConfig.RwLock.RUnlock()
 
-	product, ok := SeckillConfig.SecActivityListMap[activityId]
+	activity, ok := SeckillConfig.SecActivityListMap[activityId]
 	if !ok {
 		code = ErrNotFoundActivityId
 		err = fmt.Errorf("not found activity_id: %d", activityId)
@@ -20,7 +20,7 @@ func SecInfo(activityId int) (data []map[string]interface{}, code int, err error
 	}
 
 	data = make([]map[string]interface{}, 0)
-	item := getSecInfoByActivityConf(product)
+	item := getSecInfoByActivityConf(activity)
 	data = append(data, item)
 	return
 }
@@ -31,8 +31,7 @@ func SecInfoList() (data []map[string]interface{}, code int, err error) {
 	defer SeckillConfig.RwLock.RUnlock()
 
 	data = make([]map[string]interface{}, 0)
-	for id, activity := range SeckillConfig.SecActivityListMap {
-		logs.Info(id)
+	for _, activity := range SeckillConfig.SecActivityListMap {
 		item := getSecInfoByActivityConf(activity)
 		data = append(data, item)
 	}
@@ -56,10 +55,16 @@ func getSecInfoByActivityConf(activity *SecActivityConf) (item map[string]interf
 		}
 	}
 
-	if activity.Status == ActivityStatusForceSoldOut || activity.Status == ActivityStatusSoldOut {
+	// 活动商品售罄了，则活动自动结束
+	if activity.Left == 0 || activity.Status == ActivityStatusSoldOut {
 		start = false
 		end   = true
 		status = "product had sale out"
+	}
+	if activity.Status == ActivityStatusDisable || activity.Status == ActivityStatusExpire {
+		start = false
+		end   = true
+		status = "seckill is already end"
 	}
 
 	item = make(map[string]interface{})
@@ -119,7 +124,7 @@ func SeckillProcess(req *SecRequest) (data map[string]interface{}, code int, err
 	// 秒杀还未开始或已经结束 直接返回
 	if res[0]["start"] == false || res[0]["end"] == true {
 		logs.Debug("seckill activity is over or isn't started; req: %v", req)
-		err = fmt.Errorf("seckill activity is over")
+		err = fmt.Errorf("seckill activity is over! reason: %s", res[0]["status"])
 		code = ErrRequestSuccess
 		return
 	}

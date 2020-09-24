@@ -154,6 +154,13 @@ func handleSeckill(req *SecRequest) (res *SecResponse, err error) {
 		return
 	}
 
+	// 活动被禁用或活动已结束
+	if activity.Status == ActivityStatusDisable || activity.Status == ActivityStatusExpire {
+		res.Code = ErrActivityOver
+		logs.Warn("handle user request end! request: %v, result: %v", req, "ErrActivityOver")
+		return
+	}
+
 	// 商品售罄
 	if activity.Status == ActivityStatusSoldOut {
 		res.Code = ErrActivityProductSoldOut
@@ -193,10 +200,7 @@ func handleSeckill(req *SecRequest) (res *SecResponse, err error) {
 		res.Code = ErrActivityProductSoldOut
 		activity.Status = ActivityStatusSoldOut
 
-		// 修改etcd中activity相关的数据
-		// 数据库要加字段 left  剩余商品数，秒杀的过程中通过监听etcd进行时时更新
-		// proxy层也需要监听并更新商品状态，如果活动的商品已售罄，则直接在proxy层对用户的请求进行拦截返回
-
+		syncActivityChangeToEtcd(activity)
 		logs.Warn("handle user request end! request: %v, result: %v", req, "ErrActivityProductSoldOut")
 		return
 	}

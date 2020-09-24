@@ -6,10 +6,11 @@ import (
 	"time"
 )
 
-var (
-	ActivityStatusNormal       = 0
-	ActivityStatusSoldOut      = 1
-	ActivityStatusForceSoldOut = 2
+const (
+	ActivityStatusNormal  = 0    // 正常可用
+	ActivityStatusDisable = 1    // 禁用
+	ActivityStatusSoldOut = 2    // 售罄
+	ActivityStatusExpire  = 3    // 过期或结束
 )
 
 type RedisConf struct {

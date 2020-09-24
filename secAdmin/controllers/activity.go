@@ -19,7 +19,6 @@ func (this *ActivityController) ListActivity() {
 	list, err := model.GetActivityList()
 	if err != nil {
 		logs.Warn("get activity list failed! error: %v", err)
-		return
 	}
 	logs.Info("activity list: %v", list)
 
@@ -51,6 +50,7 @@ func (this *ActivityController) CreateActivity() {
 			return
 		}
 		activity.CreateTime = time.Now().Unix()
+		activity.Left       = activity.Total
 
 		startTime, err := dealTimeField(this.GetString("start_time"))
 		if err != nil {
