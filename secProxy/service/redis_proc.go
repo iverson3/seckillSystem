@@ -3,26 +3,54 @@ package service
 import (
 	"encoding/json"
 	"github.com/astaxie/beego/logs"
+	"strings"
 )
 
 func writeToRedis() {
+	retryTimes := 0
+	var req *SecRequest
+	var data []byte
+	var err error
 	for {
 		conn := SeckillConfig.Proxy2LayerRedisPool.Get()
 		for {
-			req := <-SeckillConfig.SecReqChan
-			logs.Debug("got request from channel")
+			if data == nil {
+				req = <-SeckillConfig.SecReqChan
+				logs.Debug("got request from channel")
 
-			data, err := json.Marshal(req)
-			if err != nil {
-				logs.Error("json Marshal for request failed! request: %v; error: %v", req, err)
-				continue
+				data, err = json.Marshal(req)
+				if err != nil {
+					logs.Error("json Marshal for request failed! request: %v; error: %v", req, err)
+					continue
+				}
 			}
 
 			_, err = conn.Do("RPUSH", SeckillConfig.Redis.RedisProxy2LayerQueueKey, string(data))
 			if err != nil {
-				logs.Error("rpush request to redis failed! request: %v; error: %v", req, err)
-				break
+				if strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host") && retryTimes < 3 {
+					retryTimes++
+					logs.Error("===================== retry times: %d", retryTimes)
+					break
+				} else {
+					resp := &SecResponse{
+						UserId:     req.UserId,
+						ActivityId: req.ActivityId,
+						Token:      "",
+						TokenTime:  0,
+						Code:       ErrServiceBusy,
+					}
+					SendResponseToResultChan(resp)
+
+					logs.Error("rpush request to redis failed! request: %v; error: %v", req, err)
+					data = nil
+					req = nil
+					retryTimes = 0
+					break
+				}
 			}
+			data = nil
+			req = nil
+			retryTimes = 0
 			logs.Debug("rpush request to redis success")
 		}
 		conn.Close()
@@ -58,14 +86,17 @@ func readFromRedis() {
 				continue
 			}
 
-			SeckillConfig.ReqMapLock.RLock()
-			request, ok := SeckillConfig.SecRequestMap[resp.UserId]
-			SeckillConfig.ReqMapLock.RUnlock()
-			if !ok {
-				continue
-			}
-			request.ResultChan <- &resp
+			SendResponseToResultChan(&resp)
 		}
 		conn.Close()
+	}
+}
+
+func SendResponseToResultChan(resp *SecResponse) {
+	SeckillConfig.ReqMapLock.RLock()
+	request, ok := SeckillConfig.SecRequestMap[resp.UserId]
+	SeckillConfig.ReqMapLock.RUnlock()
+	if ok {
+		request.ResultChan <- resp
 	}
 }

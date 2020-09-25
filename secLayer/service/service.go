@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"github.com/astaxie/beego/logs"
 	"math/rand"
+	"strings"
 	"time"
 )
 
@@ -82,23 +83,41 @@ func HandleReader()  {
 }
 
 func HandleWriter()  {
+	retryTimes := 0
+	var resp *SecResponse
+	var data []byte
+	var err error
 	for {
 		conn := secLayerContext.Layer2ProxyRedisPool.Get()
 		for {
-			resp := <-secLayerContext.Handle2WriteChan
-			logs.Debug("got user response from resp_channel, response: %v", resp)
-			data, err := json.Marshal(resp)
-			if err != nil {
-				logs.Error("json Marshal for response failed!  response: %v, error: %v", resp, err)
-				continue
+			if data == nil {
+				resp = <-secLayerContext.Handle2WriteChan
+				logs.Debug("got user response from resp_channel, response: %v", resp)
+				data, err = json.Marshal(resp)
+				if err != nil {
+					logs.Error("json Marshal for response failed!  response: %v, error: %v", resp, err)
+					continue
+				}
 			}
 
 			logs.Debug("prepare push user response to redis.")
 			_, err = conn.Do("RPUSH", secLayerContext.SecLayerConfig.Layer2ProxyRedis.RedisLayer2ProxyQueueKey, string(data))
 			if err != nil {
-				logs.Error("rpush response to redis failed! response: %s, error: %v", string(data), err)
-				break
+				if strings.Contains(err.Error(), "An existing connection was forcibly closed by the remote host") && retryTimes < 3 {
+					retryTimes++
+					logs.Error("===================== retry times: %d", retryTimes)
+					break
+				} else {
+					logs.Error("rpush response to redis failed! response: %s, error: %v", string(data), err)
+					data = nil
+					resp = nil
+					retryTimes = 0
+					break
+				}
 			}
+			data = nil
+			resp = nil
+			retryTimes = 0
 			logs.Debug("rpush response to redis ok ok ok ok ok!!!.")
 		}
 		conn.Close()
@@ -217,6 +236,11 @@ func handleSeckill(req *SecRequest) (res *SecResponse, err error) {
 	userHistory.Increment(activity.ActivityId, 1)
 	secLayerContext.ProductCountManager.Increment(activity.ActivityId, 1)
 
+	// **********************************************
+	// 时时同步更新活动商品的剩余数量，但因为目前会影响系统的运行效率，所以暂时关闭该功能
+	// 时时的更新同步剩余数量到etcd，然后Proxy、Layer以及Admin三部分都会实时监控etcd商品数据的变化
+	// 所以过于频繁的更新 还是会很大程度影响到系统运行速度；直接的结果就是导致Proxy层 客户端请求等待时间过长而最终timeout，请求失败
+	// **********************************************
 	// 计算秒杀活动剩余的商品数量
 	//soldCount = secLayerContext.ProductCountManager.Count(activity.ActivityId)
 	//activity.Left = activity.Total - soldCount
