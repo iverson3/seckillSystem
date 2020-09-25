@@ -27,6 +27,44 @@ func (this *ActivityController) ListActivity() {
 	this.TplName = "activity/list.html"
 }
 
+func (this *ActivityController) UpdateActivityStatus() {
+	result := make(map[string]interface{})
+	defer func() {
+		this.Data["json"] = result
+		this.ServeJSON()
+	}()
+	result["code"] = 200
+	result["msg"] = "success"
+
+	id, err := this.GetInt("id")
+	if err != nil {
+		result["code"] = 501
+		result["msg"] = "get params[id] failed"
+		return
+	}
+	status, err := this.GetInt("status")
+	if err != nil {
+		result["code"] = 501
+		result["msg"] = "get params[status] failed"
+		return
+	}
+
+	activity := &models.Activity{
+		Id:     id,
+		Status: status,
+	}
+	model := models.NewActivityModel()
+	err = model.UpdateActivityExpireStatusToDb(activity)
+	if err != nil {
+		result["code"] = 502
+		result["msg"] = fmt.Sprintf("update activity status failed! error: %s", err.Error())
+		return
+	}
+	go models.SyncActivityStatusToEtcd(activity)
+
+	return
+}
+
 func (this *ActivityController) DeleteActivity() {
 	// 从数据库中删除活动
 	// 从Etcd中删除活动
@@ -78,7 +116,7 @@ func (this *ActivityController) CreateActivity() {
 		activity.Id = int(newActivityId)
 
 		etcdModel := models.NewEtcdModel()
-		err = etcdModel.SyncActivityToEtcd(activity)
+		err = etcdModel.SyncNewActivityToEtcd(activity)
 		if err != nil {
 			return
 		}

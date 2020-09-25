@@ -14,4 +14,5 @@ func init() {
 
 	beego.Router("/activity", &controllers.ActivityController{}, "GET:ListActivity")
 	beego.Router("/activity/create", &controllers.ActivityController{}, "*:CreateActivity")
+	beego.Router("/activity/update/status", &controllers.ActivityController{}, "POST:UpdateActivityStatus")
 }

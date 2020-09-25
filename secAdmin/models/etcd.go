@@ -34,44 +34,67 @@ func SetEtcd(etcd *clientv3.Client, etcdConf EtcdConfig) {
 	EtcdConf = etcdConf
 }
 
-func (this *EtcdModel) SyncActivityToEtcd(activity *Activity) (err error) {
-	SeckillConfs, err := getSecActivityList()
+// 将后台新建的活动同步到etcd的活动数据中
+func (this *EtcdModel) SyncNewActivityToEtcd(activity *Activity) (err error) {
+	SeckillConfs, err := getSecActivityListFromEtcd()
 	if err != nil {
 		return
 	}
 
-	SeckillConfs = append(SeckillConfs,
-		SecActivityConf{
-			ActivityId: activity.Id,
-			ProductId: activity.ProductId,
-			Total:     activity.Total,
-			Left:      activity.Left,
-			Status:    activity.Status,
-			StartTime: activity.StartTime,
-			EndTime:   activity.EndTime,
-			BuyRate:   activity.BuyRate,
-			UserMaxBuyLimit: activity.BuyLimit,
-			MaxSoldLimit: activity.SoldLimitSecond,
-		})
+	newActivityConf := &SecActivityConf{
+		ActivityId: activity.Id,
+		ProductId: activity.ProductId,
+		Total:     activity.Total,
+		Left:      activity.Left,
+		Status:    activity.Status,
+		StartTime: activity.StartTime,
+		EndTime:   activity.EndTime,
+		BuyRate:   activity.BuyRate,
+		UserMaxBuyLimit: activity.BuyLimit,
+		MaxSoldLimit: activity.SoldLimitSecond,
+	}
+	SeckillConfs = append(SeckillConfs, newActivityConf)
 
+	logs.Info("prepare to sync new_activity to etcd; activity: %v", activity)
+	return SyncActivityDataToEtcd(SeckillConfs)
+}
+
+// 将活动状态的变化信息更新到etcd的活动数据中 (比如活动结束/活动被禁用)
+func SyncActivityStatusToEtcd(activity *Activity) {
+	SeckillConfs, err := getSecActivityListFromEtcd()
+	if err != nil {
+		return
+	}
+
+	for _, v := range SeckillConfs {
+		if v.ActivityId == activity.Id {
+			v.Status = activity.Status
+			break
+		}
+	}
+	logs.Info("prepare to sync activity status to etcd; activity: %v", activity)
+	_ = SyncActivityDataToEtcd(SeckillConfs)
+}
+
+func SyncActivityDataToEtcd(SeckillConfs []*SecActivityConf) (err error) {
 	data, err := json.Marshal(SeckillConfs)
 	if err != nil {
 		return
 	}
 
-	logs.Info("will put to etcd: %s", string(data))
 	ctx, cancel := context.WithTimeout(context.Background(), time.Second)
 	_, err = EtcdClient.Put(ctx, EtcdConf.ActivityKey, string(data))
 	cancel()
 	if err != nil {
-		logs.Error("sync seckill activity to etcd failed! error: %v", err)
-		return
+		logs.Error("sync seckill activity info to etcd failed! error: %v", err)
+	} else {
+		logs.Error("sync seckill activity info to etcd success!")
 	}
 	return
 }
 
 // 从etcd服务读取秒杀活动数据
-func getSecActivityList() (secActivityList []SecActivityConf, err error) {
+func getSecActivityListFromEtcd() (secActivityList []*SecActivityConf, err error) {
 	ctx, cancelFunc := context.WithTimeout(context.Background(), time.Second * 10)
 	response, err := EtcdClient.Get(ctx, EtcdConf.ActivityKey)
 	cancelFunc()

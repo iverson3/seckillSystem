@@ -73,7 +73,8 @@ func (this *ActivityModel) GetActivityList() (list []*Activity, err error) {
 		if now >= v.EndTime {
 			if v.Status != ActivityStatusExpire {
 				v.Status = ActivityStatusExpire
-				go updateActivityExpireStatusToDb(v.Id, v.Status)
+				go this.UpdateActivityExpireStatusToDb(v)
+				go SyncActivityStatusToEtcd(v)
 			}
 			v.StatusStr = "已结束"
 			continue
@@ -109,15 +110,16 @@ func (this *ActivityModel) CreateNewActivity(a *Activity) (id int64, err error) 
 	return
 }
 
-// 将活动结束的状态更新到数据库
-func updateActivityExpireStatusToDb(id int, status int) {
+// 将活动状态的变化更新到数据库
+func (this *ActivityModel) UpdateActivityExpireStatusToDb(activity *Activity) (err error) {
 	sql := "update activity set status=? where id=?"
-	_, err := Db.Exec(sql, status, id)
+	_, err = Db.Exec(sql, activity.Status, activity.Id)
 	if err != nil {
-		logs.Error("update column<status> for activity_table failed! activity_id: %d, status: %d, error: %v", id, status, err)
+		logs.Error("update column<status> for activity_table failed! activity_id: %d, status: %d, error: %v", activity.Id, activity.Status, err)
 	} else {
-		logs.Info("update column<status> for activity_table success! activity_id: %d, status: %d", id, status)
+		logs.Info("update column<status> for activity_table success! activity_id: %d, status: %d", activity.Id, activity.Status)
 	}
+	return
 }
 
 // 将etcd中获取到的活动数据更新到数据库 (主要更新left和status字段 即活动商品的剩余数量和活动的状态)
@@ -131,9 +133,9 @@ func updateActivityToDb(activityList *[]SecActivityConf) {
 
 		_, err := Db.Exec(sql, v.Left, v.Status, v.ActivityId)
 		if err != nil {
-			logs.Error("update column<left> for activity_table failed! activity_id: %d, left: %d, error: %v", v.ActivityId, v.Left, err)
+			logs.Error("update column<status> for activity_table failed! activity_id: %d, status: %d, error: %v", v.ActivityId, v.Status, err)
 		} else {
-			logs.Info("update column<left> for activity_table success! activity_id: %d, left: %d", v.ActivityId, v.Left)
+			logs.Info("update column<status> for activity_table success! activity_id: %d, status: %d", v.ActivityId, v.Status)
 		}
 	}
 }
