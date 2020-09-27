@@ -59,8 +59,29 @@ func (this *EtcdModel) SyncNewActivityToEtcd(activity *Activity) (err error) {
 	return SyncActivityDataToEtcd(SeckillConfs)
 }
 
-// 将活动状态的变化信息更新到etcd的活动数据中 (比如活动结束/活动被禁用)
-func SyncActivityStatusToEtcd(activity *Activity) {
+// 从etcd中删除指定的活动
+func (this *EtcdModel) DeleteActivityFromEtcd(activityId int) (err error) {
+	SeckillConfs, err := getSecActivityListFromEtcd()
+	if err != nil {
+		return
+	}
+
+	index := -1
+	for i, v := range SeckillConfs {
+		if v.ActivityId == activityId {
+			index = i
+			break
+		}
+	}
+	if index == -1 {
+		return
+	}
+	SeckillConfs = append(SeckillConfs[:index], SeckillConfs[index + 1:]...)
+	return SyncActivityDataToEtcd(SeckillConfs)
+}
+
+// 将活动的变化信息更新到etcd的活动数据中 (比如活动状态：活动结束/活动被禁用  活动商品的剩余数量)
+func SyncActivityChangeToEtcd(activity *Activity) {
 	SeckillConfs, err := getSecActivityListFromEtcd()
 	if err != nil {
 		return
@@ -68,7 +89,12 @@ func SyncActivityStatusToEtcd(activity *Activity) {
 
 	for _, v := range SeckillConfs {
 		if v.ActivityId == activity.Id {
-			v.Status = activity.Status
+			if activity.Left != -1 {
+				v.Left = activity.Left
+			}
+			if activity.Status != -1 {
+				v.Status = activity.Status
+			}
 			break
 		}
 	}
@@ -88,7 +114,7 @@ func SyncActivityDataToEtcd(SeckillConfs []*SecActivityConf) (err error) {
 	if err != nil {
 		logs.Error("sync seckill activity info to etcd failed! error: %v", err)
 	} else {
-		logs.Error("sync seckill activity info to etcd success!")
+		logs.Info("sync seckill activity info to etcd success!")
 	}
 	return
 }

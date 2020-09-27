@@ -52,6 +52,7 @@ func (this *ActivityController) UpdateActivityStatus() {
 	activity := &models.Activity{
 		Id:     id,
 		Status: status,
+		Left: -1,
 	}
 	model := models.NewActivityModel()
 	err = model.UpdateActivityExpireStatusToDb(activity)
@@ -60,14 +61,84 @@ func (this *ActivityController) UpdateActivityStatus() {
 		result["msg"] = fmt.Sprintf("update activity status failed! error: %s", err.Error())
 		return
 	}
-	go models.SyncActivityStatusToEtcd(activity)
+	go models.SyncActivityChangeToEtcd(activity)
 
 	return
 }
 
 func (this *ActivityController) DeleteActivity() {
+	result := make(map[string]interface{})
+	defer func() {
+		this.Data["json"] = result
+		this.ServeJSON()
+	}()
+	result["code"] = 200
+	result["msg"] = "success"
+
+	activityId, err := this.GetInt("id")
+	if err != nil {
+		result["code"] = 501
+		result["msg"] = "get params[id] failed"
+		return
+	}
+
 	// 从数据库中删除活动
+	model := models.NewActivityModel()
+	err = model.DeleteActivityById(activityId)
+	if err != nil {
+		result["code"] = 502
+		result["msg"] = fmt.Sprintf("delete activity from db failed! error: %v", err)
+		return
+	}
+
 	// 从Etcd中删除活动
+	etcdModel := models.NewEtcdModel()
+	err = etcdModel.DeleteActivityFromEtcd(activityId)
+	if err != nil {
+		result["code"] = 502
+		result["msg"] = fmt.Sprintf("delete activity from etcd failed! error: %v", err)
+		return
+	}
+	return
+}
+
+// 获取活动商品的剩余数
+func (this *ActivityController) GetActivityProductLeft() {
+	result := make(map[string]interface{})
+	defer func() {
+		this.Data["json"] = result
+		this.ServeJSON()
+	}()
+	result["code"] = 200
+	result["msg"] = "success"
+
+	activityId, err := this.GetInt("id")
+	if err != nil {
+		result["code"] = 501
+		result["msg"] = "get params[id] failed"
+		return
+	}
+
+	model := models.NewRedisModel()
+	left, err := model.GetProductLeftNum(activityId)
+	if err != nil {
+		result["code"] = 502
+		result["msg"] = fmt.Sprintf("get product left from redis failed! error: %v", err)
+		return
+	}
+
+	activity := &models.Activity{
+		Id:              activityId,
+		Left:            left,
+		Status:          -1,
+	}
+	activityModel := models.NewActivityModel()
+	_ = activityModel.UpdateProductLeftNumToDb(activityId, left)
+
+	go models.SyncActivityChangeToEtcd(activity)
+
+	result["data"] = left
+	return
 }
 
 func (this *ActivityController) CreateActivity() {

@@ -19,3 +19,10 @@ etcd_addr =
 etcd_timeout =
 etcd_sec_key_prefix =
 etcd_sec_activity_key =
+
+redis_addr =
+redis_password =
+redis_max_idle =
+redis_max_active =
+redis_idle_timeout =
+redis_product_left_key =

@@ -99,6 +99,12 @@ func initConfig(confType, filename string) (err error) {
 		return fmt.Errorf("read redis::redis_layer2proxy_queue_key from config-file failed")
 	}
 
+	AppConfig.Layer2ProxyRedis.ProductLeftKey = conf.String("redis::redis_product_left_key")
+	if len(AppConfig.Layer2ProxyRedis.ProductLeftKey) == 0 {
+		logs.Error("read redis::redis_product_left_key from config-file failed")
+		return fmt.Errorf("read redis::redis_product_left_key from config-file failed")
+	}
+
 	AppConfig.Layer2ProxyRedis.RedisAddr = AppConfig.Proxy2LayerRedis.RedisAddr
 	AppConfig.Layer2ProxyRedis.RedisPassword = AppConfig.Proxy2LayerRedis.RedisPassword
 	AppConfig.Layer2ProxyRedis.RedisMaxIdle = AppConfig.Proxy2LayerRedis.RedisMaxIdle

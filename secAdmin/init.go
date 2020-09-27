@@ -3,6 +3,7 @@ package main
 import (
 	"fmt"
 	"github.com/astaxie/beego/logs"
+	"github.com/garyburd/redigo/redis"
 	"github.com/jmoiron/sqlx"
 	"go.etcd.io/etcd/clientv3"
 	"seckillsystem/secAdmin/models"
@@ -13,6 +14,7 @@ import (
 var (
 	Db *sqlx.DB
 	EtcdClient *clientv3.Client
+	RedisPool *redis.Pool
 )
 
 func Init() (err error) {
@@ -28,9 +30,14 @@ func Init() (err error) {
 	if err != nil {
 		return
 	}
+	err = initRedis()
+	if err != nil {
+		return
+	}
 
 	models.SetDb(Db)
 	models.SetEtcd(EtcdClient, AppConf.etcd)
+	models.SetRedis(RedisPool, AppConf.redis)
 
 	go models.WatchEtcdActivityChange()
 	return
@@ -57,5 +64,25 @@ func initEtcd() (err error) {
 		return
 	}
 	logs.Info("connect to etcd success!")
+	return
+}
+
+func initRedis() (err error) {
+	RedisPool = &redis.Pool{
+		Dial: func() (redis.Conn, error) {
+			return redis.Dial("tcp", AppConf.redis.Addr, redis.DialPassword(AppConf.redis.PassWd))
+		},
+		MaxIdle:         AppConf.redis.MaxIdle,
+		MaxActive:       AppConf.redis.MaxActive,
+		IdleTimeout:     time.Duration(AppConf.redis.IdleTimeout) * time.Second,
+	}
+
+	conn := RedisPool.Get()
+	defer conn.Close()
+	_, err = conn.Do("ping")
+	if err != nil {
+		logs.Error("ping redis failed! error: %v", err)
+		return
+	}
 	return
 }

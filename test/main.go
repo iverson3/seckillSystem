@@ -30,9 +30,9 @@ func main() {
 		userid := 1000 + i
 
 		if i % 2 == 0 {
-			activityId = 18
+			activityId = 22
 		} else {
-			activityId = 18
+			activityId = 22
 		}
 		go mockUserRequest(wg, userid, activityId, requestsPerConcurrent, chanInt)
 		wg.Add(1)

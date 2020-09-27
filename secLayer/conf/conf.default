@@ -7,6 +7,7 @@ redis_max_active =
 redis_idle_timeout =
 redis_proxy2layer_queue_key =
 redis_layer2proxy_queue_key =
+redis_product_left_key =
 
 #etcd相关配置
 [etcd]

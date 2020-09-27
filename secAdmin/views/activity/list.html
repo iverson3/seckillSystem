@@ -171,12 +171,17 @@
 
             <tbody>
             {{range .activity_list}}
+
+                {{if eq .StatusStr "活动进行中" }}
+                    <span style="display: none" class="activityIdList">{{.Id}}</span>
+                {{end}}
+
                 <tr>
                     <td>{{.Id}}</td>
                     <td>{{.Name}}</td>
                     <td>{{.ProductId}}</td>
                     <td>{{.Total}}</td>
-                    <td><span class="label label-important">{{.Left}}</span></td>
+                    <td><span class="label label-important" id="activity_{{.Id}}">{{.Left}}</span></td>
                     <td>{{.BuyRate}}</td>
                     <td class="hidden-480">{{.StartTimeStr}}</td>
                     <td class="hidden-480">{{.EndTimeStr}}</td>
@@ -189,6 +194,11 @@
                             <button onclick="changeActivityStatus({{.Id}}, 1)">禁用</button>
                         {{else if eq .Status 1 }}
                             <button onclick="changeActivityStatus({{.Id}}, 0)">可用</button>
+                        {{end}}
+
+
+                        {{if ne .StatusStr "活动进行中" }}
+                            <button onclick="deleteActivity({{.Id}})">删除</button>
                         {{end}}
                     </td>
                 </tr>
@@ -205,8 +215,45 @@
 
 
 <script type="application/javascript">
+    window.onload = function(){
+        // 不断的调用api获取商品的剩余数
+        setInterval(function () {
+            var eles = document.getElementsByClassName("activityIdList")
+
+            console.log(eles.length)
+            for(var i = 0; i < eles.length; i++) {
+                var activityId = eles.item(i).innerHTML
+
+                getAndSetProductLeft(activityId)
+            }
+        }, 3000)
+    }
+    function getAndSetProductLeft(id) {
+        $.ajax({
+            "type": 'POST',
+            "url": "/activity/product/left",
+            "data": {
+                "id": id
+            },
+            "success": function (res) {
+                console.log(res)
+                if (res.code === 200) {
+                    var ele = document.getElementById("activity_" + id)
+                    ele.innerText = res.data
+                } else if (res.code === 501 || res.code === 502) {
+                    window.alert(res.msg)
+                } else {
+                    console.log(res.msg)
+                }
+            },
+            "error": function (err) {
+                console.log("get product left failed")
+            }
+        });
+    }
+
+
     function changeActivityStatus(id, status) {
-        console.log(id, status)
         $.ajax({
             "type": 'POST',
             "url": "/activity/update/status",
@@ -225,7 +272,30 @@
                 }
             },
             "error": function (err) {
-                console.log("post failed")
+                console.log("update status failed")
+            }
+        });
+    }
+
+    function deleteActivity(id) {
+        $.ajax({
+            "type": 'POST',
+            "url": "/activity/delete",
+            "data": {
+                "id": id
+            },
+            "success": function (res) {
+                console.log(res)
+                if (res.code === 200) {
+                    location.reload()
+                } else if (res.code === 501 || res.code === 502) {
+                    window.alert(res.msg)
+                } else {
+                    console.log(res.msg)
+                }
+            },
+            "error": function (err) {
+                console.log("delete activity failed")
             }
         });
     }

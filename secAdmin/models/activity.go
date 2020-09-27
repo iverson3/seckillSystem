@@ -74,7 +74,7 @@ func (this *ActivityModel) GetActivityList() (list []*Activity, err error) {
 			if v.Status != ActivityStatusExpire {
 				v.Status = ActivityStatusExpire
 				go this.UpdateActivityExpireStatusToDb(v)
-				go SyncActivityStatusToEtcd(v)
+				go SyncActivityChangeToEtcd(v)
 			}
 			v.StatusStr = "已结束"
 			continue
@@ -110,6 +110,28 @@ func (this *ActivityModel) CreateNewActivity(a *Activity) (id int64, err error) 
 	return
 }
 
+func (this *ActivityModel) DeleteActivityById(activityId int) (err error) {
+	sql := "delete from activity where id=?"
+	_, err = Db.Exec(sql, activityId)
+	if err != nil {
+		logs.Error("delete from activity_table failed! activity_id: %d, error: %v", activityId, err)
+	} else {
+		logs.Info("delete from activity_table success! activity_id: %d", activityId)
+	}
+	return
+}
+
+func (this *ActivityModel) UpdateProductLeftNumToDb(activityId, left int) (err error) {
+	sql := "update activity set `left`=? where id=?"
+	_, err = Db.Exec(sql, left, activityId)
+	if err != nil {
+		logs.Error("update column<left> for activity_table failed! activity_id: %d, left: %d, error: %v", activityId, left, err)
+	} else {
+		logs.Info("update column<left> for activity_table success! activity_id: %d, left: %d", activityId, left)
+	}
+	return
+}
+
 // 将活动状态的变化更新到数据库
 func (this *ActivityModel) UpdateActivityExpireStatusToDb(activity *Activity) (err error) {
 	sql := "update activity set status=? where id=?"
@@ -122,16 +144,16 @@ func (this *ActivityModel) UpdateActivityExpireStatusToDb(activity *Activity) (e
 	return
 }
 
-// 将etcd中获取到的活动数据更新到数据库 (主要更新left和status字段 即活动商品的剩余数量和活动的状态)
+// 将etcd中获取到的活动数据更新到数据库 (主要更新status字段 即活动的状态)
 func updateActivityToDb(activityList *[]SecActivityConf) {
 	now := time.Now().Unix()
 	for _, v := range *activityList {
 		if v.Status == ActivityStatusDisable || v.Status == ActivityStatusExpire || v.EndTime <= now {
 			continue
 		}
-		sql := "update activity set `left`=?,status=? where id=?"
 
-		_, err := Db.Exec(sql, v.Left, v.Status, v.ActivityId)
+		sql := "update activity set status=? where id=?"
+		_, err := Db.Exec(sql, v.Status, v.ActivityId)
 		if err != nil {
 			logs.Error("update column<status> for activity_table failed! activity_id: %d, status: %d, error: %v", v.ActivityId, v.Status, err)
 		} else {

@@ -11,6 +11,8 @@ import (
 )
 
 func Run() {
+	go TickCountProductLeft()
+
 	for i := 0; i < secLayerContext.SecLayerConfig.ReadLayer2ProxyGoroutineNum; i++ {
 		secLayerContext.SecWaitGroup.Add(1)
 		go HandleReader()
@@ -28,6 +30,34 @@ func Run() {
 	logs.Debug("all process goroutine have started")
 	secLayerContext.SecWaitGroup.Wait()
 	logs.Debug("all process goroutine exited")
+}
+
+// 定时的计算活动商品的剩余数
+func TickCountProductLeft() {
+	ticker := time.Tick(3 * time.Second)
+	for {
+		select {
+		case <-ticker:
+			now := time.Now().Unix()
+			secLayerContext.SecActivityRwLock.RLock()
+			for _, activity := range secLayerContext.SecLayerConfig.SecActivityListMap {
+				if activity.Status == 0 || (activity.StartTime <= now && activity.EndTime > now) {
+					left := activity.Total - secLayerContext.ProductCountManager.Count(activity.ActivityId)
+					_ = SyncProductLeftToRedis(activity.ActivityId, left)
+				}
+			}
+			secLayerContext.SecActivityRwLock.RUnlock()
+		}
+	}
+}
+
+// 同步活动商品的剩余数到redis中
+func SyncProductLeftToRedis(activityId, left int) (err error) {
+	conn := secLayerContext.Layer2ProxyRedisPool.Get()
+	defer conn.Close()
+
+	_, err = conn.Do("hset", secLayerContext.SecLayerConfig.Layer2ProxyRedis.ProductLeftKey, activityId, left)
+	return
 }
 
 func HandleReader()  {

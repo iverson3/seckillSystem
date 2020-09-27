@@ -19,6 +19,7 @@ type RedisConf struct {
 	RedisIdleTimeout int
 	RedisProxy2LayerQueueKey string
 	RedisLayer2ProxyQueueKey string
+	ProductLeftKey string
 }
 
 type EtcdConf struct {
