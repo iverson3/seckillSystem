@@ -128,9 +128,9 @@ func (this *ActivityController) GetActivityProductLeft() {
 	}
 
 	activity := &models.Activity{
-		Id:              activityId,
-		Left:            left,
-		Status:          -1,
+		Id:     activityId,
+		Left:   left,
+		Status: -1,
 	}
 	activityModel := models.NewActivityModel()
 	_ = activityModel.UpdateProductLeftNumToDb(activityId, left)
