@@ -1,8 +1,11 @@
 package main
 
 import (
-	"github.com/prometheus/common/log"
+	"encoding/json"
+	"fmt"
+	"log"
 	"net"
+	"path/filepath"
 	"seckillsystem/test/partUpDown/common"
 )
 
@@ -32,13 +35,13 @@ func main() {
 
 	conn, err := net.Dial("tcp", "127.0.0.1:9999")
 	if err != nil {
-		log.Error("connect to server failed! error: ", err)
+		log.Fatal("connect to server failed! error: ", err)
 		return
 	}
 	defer conn.Close()
 
 	err = ProcessConnWithServer(conn)
-	log.Info("client will exit!")
+	log.Println("client will exit!")
 }
 
 func ProcessConnWithServer(conn net.Conn) error {
@@ -47,12 +50,42 @@ func ProcessConnWithServer(conn net.Conn) error {
 		Conn: conn,
 	}
 
-	err := tf.WritePkg([]byte("hello update"))
+	filePath := "./aaa"
+	filePath, _ = filepath.Abs(filePath)
+
+	fmt.Println(filePath)
+
+	lf := &common.LocalFile{
+		LocalFileMeta: common.LocalFileMeta{
+			Path: filePath,
+		},
+	}
+
+	err := lf.OpenPath()
 	if err != nil {
-		log.Error("send data to server failed! error: ", err)
+		log.Fatal("open file failed! error: ", err)
 		return err
 	}
 
-	log.Info("send data to server success!")
+	fum := &common.FileUpMessage{
+		Type:     common.MultipleUpload,
+		FilePath: filePath,
+		FileSize: int(lf.Length),
+		FileHash: "",
+	}
+
+	data, err := json.Marshal(fum)
+	if err != nil {
+		log.Fatal("json marshal message failed! error: ", err)
+		return err
+	}
+
+	err = tf.WritePkg(data)
+	if err != nil {
+		log.Fatal("send data to server failed! error: ", err)
+		return err
+	}
+
+	log.Println("send data to server success!")
 	return nil
 }

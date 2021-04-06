@@ -1,6 +1,7 @@
 package main
 
 import (
+	"fmt"
 	"io"
 	"log"
 	"net"
@@ -27,6 +28,7 @@ func main() {
 			break
 		}
 
+		log.Println("a new client connect to server")
 		go ProcessConn(conn)
 	}
 }
@@ -59,7 +61,8 @@ func ProcessConn(conn net.Conn) {
 			break
 		}
 
-		log.Println(string(mess.Data))
+
+		fmt.Printf("data from client: %v\n", mess)
 	}
 }
 

@@ -20,3 +20,10 @@ type SumConfig struct {
 	IsSliceMD5Sum bool
 	IsCRC32Sum    bool
 }
+
+type FileUpMessage struct {
+	Type string     `json:"type"`
+	FilePath string `json:"file_path"`
+	FileSize int    `json:"file_size"`
+	FileHash string `json:"file_hash"`
+}

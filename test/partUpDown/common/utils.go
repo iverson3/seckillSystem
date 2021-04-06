@@ -15,7 +15,7 @@ type Transfer struct {
 }
 
 // 从连接中读取客户端发送过来的数据
-func (this *Transfer) ReadPkg() (mess Message, err error) {
+func (this *Transfer) ReadPkg() (mess FileUpMessage, err error) {
 	_, err = this.Conn.Read(this.Buf[:4])
 	if err != nil {
 		return
