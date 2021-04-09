@@ -9,8 +9,6 @@ import (
 	"os"
 )
 
-const defaultBufSize = 64 * 1024 * 1024   // 默认buffer大小 64MB
-
 type LocalFile struct {
 	LocalFileMeta
 
@@ -49,51 +47,13 @@ func (lf *LocalFile) Close() error {
 	return lf.File.Close()
 }
 
-func (lf *LocalFile) initBuf() {
+func (lf *LocalFile) InitBuf() {
 	if lf.Buf == nil {
 		if lf.BufSize != 0 {
 			lf.Buf = make([]byte, lf.BufSize)
 		} else {
-			lf.Buf = make([]byte, defaultBufSize)
+			lf.Buf = make([]byte, DefaultUpChunkSize)
 		}
-	}
-}
-
-func (lf *LocalFile) repeatRead(ws ...io.Writer)  {
-	if lf.File == nil {
-		return
-	}
-
-	lf.initBuf()
-
-	var (
-		begin int64
-		n int
-		err error
-	)
-
-	handle := func() {
-		begin += int64(n)
-		for k := range ws {
-			_, err = ws[k].Write(lf.Buf[:n])
-			if err != nil {
-				fmt.Println("write data failed! error: ", err)
-			}
-		}
-	}
-
-	// 读文件
-	for {
-		n, err = lf.File.ReadAt(lf.Buf, begin)
-		if err != nil {
-			if err == io.EOF {
-				handle()
-			} else {
-				fmt.Println("read file failed! error: ", err)
-			}
-			break
-		}
-		handle()
 	}
 }
 
@@ -117,7 +77,7 @@ func (lf *LocalFile) Sum(cfg SumConfig) {
 		lf.SliceMD5Sum()
 	}
 
-	lf.repeatRead(ws...)
+	//lf.repeatRead(ws...)
 
 	if cfg.IsMD5Sum {
 		lf.MD5 = md5w.Sum(nil)
@@ -141,7 +101,7 @@ func (lf *LocalFile) SliceMD5Sum() {
 	}
 
 	// 获取前 256KB 文件切片的 md5
-	lf.initBuf()
+	//lf.initBuf()
 
 	m := md5.New()
 	n, err := lf.File.ReadAt(lf.Buf, 0)

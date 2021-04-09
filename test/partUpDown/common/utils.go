@@ -1,9 +1,12 @@
 package common
 
 import (
+	"crypto/md5"
 	"encoding/binary"
+	"encoding/hex"
 	"encoding/json"
 	"errors"
+	"log"
 	"net"
 )
 
@@ -11,11 +14,11 @@ import (
 type Transfer struct {
 	Conn net.Conn
 	// 数据传输时的缓冲空间
-	Buf [100*1024*1024]byte
+	Buf [300*1024*1024]byte
 }
 
 // 从连接中读取客户端发送过来的数据
-func (this *Transfer) ReadPkg() (mess FileUpMessage, err error) {
+func (this *Transfer) ReadPkg() (mess Message, err error) {
 	_, err = this.Conn.Read(this.Buf[:4])
 	if err != nil {
 		return
@@ -23,6 +26,9 @@ func (this *Transfer) ReadPkg() (mess FileUpMessage, err error) {
 
 	// 获取到数据的长度信息 (借助binary包方法将byte数据转为int数字)
 	pkgLen := binary.BigEndian.Uint32(this.Buf[:4])
+
+	log.Println("===================")
+	log.Println(pkgLen)
 
 	n, err := this.Conn.Read(this.Buf[:pkgLen])
 	if n != int(pkgLen) || err != nil {
@@ -56,4 +62,10 @@ func (this *Transfer) WritePkg(data []byte) (err error)  {
 		return errors.New("发送给客户端的数据的长度与数据实际长度不匹配")
 	}
 	return
+}
+
+func Md5String(str string) string {
+	h := md5.New()
+	h.Write([]byte(str))
+	return hex.EncodeToString(h.Sum(nil))
 }
