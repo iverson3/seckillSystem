@@ -3,7 +3,6 @@ package process
 import (
 	"encoding/json"
 	"errors"
-	"fmt"
 	"log"
 	"seckillsystem/test/partUpDown/common"
 	"time"
@@ -77,50 +76,47 @@ func (upm *UploadManager) SaveUpInfo(info *common.MultipleUploadInfo) error {
 	return nil
 }
 
-func (upm *UploadManager) LoopReadFileData(tf *common.Transfer, upInfo common.MultipleUploadInfo) (err error) {
+func (upm *UploadManager) LoopReadFileData(tf *common.Transfer, upInfo *common.MultipleUploadInfo) (err error) {
 	if upInfo.LocalFile.File == nil {
 		return errors.New("lf.File is nil")
 	}
 	upInfo.LocalFile.InitBuf()
 
-	var fileInfo *common.FileUpMessage
-	var infoData []byte
+	//var fileInfo *common.FileUpMessage
+	//var infoData []byte
 	var i int64 = 1
+	var n = 0
 	for ; i <= int64(upInfo.ChunkCount); i++ {
 		_, _ = upInfo.LocalFile.File.Seek((i - 1)*int64(upInfo.ChunkSize), 0)
 
-		n, err := upInfo.LocalFile.File.Read(upInfo.LocalFile.Buf)
+		n, err = upInfo.LocalFile.File.Read(upInfo.LocalFile.Buf)
 		if err != nil {
 			log.Printf("forloop [%d], read file data failed! error: %v\n", i, err)
 			break
 		}
 
-		fileInfo = &common.FileUpMessage{
-			Type:     common.MultipleUpload,
-			Status:   common.MultipleUploading,
-			FilePath: upInfo.LocalFile.Path,
-			FileSize: int(upInfo.LocalFile.Length),
-			FileHash: "",
-			UploadID: upInfo.UploadID,
-			Data: common.FileUpData{
-				PartNo:   int(i),
-				Len:      n,
-				ByteData: upInfo.LocalFile.Buf[:n],
-			},
+		log.Println("===")
+		log.Println("upInfo.LocalFile.Buf = ", len(upInfo.LocalFile.Buf))
+		log.Println("n = ", n)
+
+		fileData := &common.FileUpData{
+			PartNo:   int(i),
+			Len:      n,
+			ByteData: upInfo.LocalFile.Buf[:n],
 		}
-		infoData, err = json.Marshal(fileInfo)
+
+		//go sendFileDataToServer(tf, int(i), infoData)
+		err = sendFileDataToServer(tf, int(i), upInfo, fileData)
 		if err != nil {
-			log.Println("json marshal failed! error: ", err)
+			log.Printf("send file data[%d] to server failed! error: %v\n", i, err)
 			break
 		}
-
-		go sendFileDataToServer(tf, int(i), &infoData)
-		//sendFileDataToServer(tf, lf, upInfo, int(i), n)
 	}
 
-	fileInfo = nil
+	//fileInfo = nil
 	UploadMgr.UploadingFileMap[upInfo.UploadID].LocalFile.Close()
 
+	return err
 	//var (
 	//	begin int64
 	//	n int
@@ -147,13 +143,29 @@ func (upm *UploadManager) LoopReadFileData(tf *common.Transfer, upInfo common.Mu
 	//	begin += int64(n)
 	//	no++
 	//}
-	return
 }
 
-func sendFileDataToServer(tf *common.Transfer, partNo int, infoData *[]byte) (err error) {
+func sendFileDataToServer(tf *common.Transfer, partNo int, upInfo *common.MultipleUploadInfo, fileData *common.FileUpData) (err error) {
+	fileInfo := &common.FileUpMessage{
+		Type:     common.MultipleUpload,
+		Status:   common.MultipleUploading,
+		FilePath: upInfo.LocalFile.Path,
+		FileSize: int(upInfo.LocalFile.Length),
+		FileHash: "",
+		UploadID: upInfo.UploadID,
+		Data: *fileData,
+	}
+	infoData, err := json.Marshal(fileInfo)
+	if err != nil {
+		log.Println("json marshal failed! error: ", err)
+		return
+	}
+
+	log.Println("infoData = ", len(infoData))
+
 	mess := &common.Message{
 		Type:    common.MessFileUp,
-		Data:    string(*infoData),
+		Data:    string(infoData),
 		AddTime: "",
 	}
 	data, err := json.Marshal(mess)
@@ -162,17 +174,17 @@ func sendFileDataToServer(tf *common.Transfer, partNo int, infoData *[]byte) (er
 	}
 
 	log.Println("len(data) = ", len(data))
-	mess = nil
-	infoData = nil
+	//mess = nil
+	//infoData = nil
 	err = tf.WritePkg(data)
-	data = nil
+	//data = nil
 
 	if err != nil {
-		fmt.Println("write file data to server failed! error: ", err)
+		log.Printf("write file data[%d] to server failed! error: %v\n", partNo, err)
 		return
 	}
 
-	fmt.Printf("write file data to server success! part[%d]\n", partNo)
+	log.Printf("write file data to server success! part[%d]\n", partNo)
 	return
 }
 

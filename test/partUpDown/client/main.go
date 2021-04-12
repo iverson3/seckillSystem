@@ -78,9 +78,9 @@ func ProcessConnWithServer(conn net.Conn) {
 		switch key {
 		case 4: {
 			// 让用户选择文件 / 输入文件路径
-			filePath := "./ekw029.mp4"
+			//filePath := "./Bodysurfing.gituar.webm"
 			//filePath := "./ccc.txt"
-			//filePath := "./bbb.mp4"
+			filePath := "./399.mp4"
 			//filePath := "./aaa"
 			err = UploadFile(tf, filePath)
 			if err != nil {

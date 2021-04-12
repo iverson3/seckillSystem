@@ -64,9 +64,9 @@ func processFileUp(tf *common.Transfer, message common.Message) {
 	}
 
 	err = UploadMgr.SaveUpInfo(&upInfo)
-	err = UploadMgr.LoopReadFileData(tf, upInfo)
+	err = UploadMgr.LoopReadFileData(tf, &upInfo)
 	if err != nil {
-		log.Println("send file data to server failed! error: ", err)
+		log.Println("send file to server failed! error: ", err)
 		return
 	}
 

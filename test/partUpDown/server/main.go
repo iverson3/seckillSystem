@@ -68,6 +68,8 @@ func ProcessConn(conn net.Conn) {
 			break
 		}
 
+		log.Println("message type from client is: ", mess.Type)
+
 		if mess.Type == common.MessFileUp {
 			upMess, err := upMgr.ParseUpMess(mess.Data)
 			if err != nil {
