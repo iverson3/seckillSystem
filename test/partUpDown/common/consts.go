@@ -1,7 +1,7 @@
 package common
 
-const DefaultUpChunkSize = 8 * 1024 * 1024    // 50MB
-//const DefaultUpChunkSize = 200 * 1024 * 1024    // 50MB
+//const DefaultUpChunkSize = 8 * 1024 * 1024    // 50MB
+const DefaultUpChunkSize = 50 * 1024 * 1024    // 50MB
 //const DefaultUpChunkSize =  8    // 8字节
 const DefaultUploadTmpBasePath = "./public/upload/tmp/"
 const DefaultUploadBasePath = "./public/upload/"

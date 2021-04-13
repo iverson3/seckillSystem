@@ -95,10 +95,6 @@ func (upm *UploadManager) LoopReadFileData(tf *common.Transfer, upInfo *common.M
 			break
 		}
 
-		log.Println("===")
-		log.Println("upInfo.LocalFile.Buf = ", len(upInfo.LocalFile.Buf))
-		log.Println("n = ", n)
-
 		fileData := &common.FileUpData{
 			PartNo:   int(i),
 			Len:      n,
@@ -115,8 +111,8 @@ func (upm *UploadManager) LoopReadFileData(tf *common.Transfer, upInfo *common.M
 
 	//fileInfo = nil
 	UploadMgr.UploadingFileMap[upInfo.UploadID].LocalFile.Close()
-
 	return err
+
 	//var (
 	//	begin int64
 	//	n int
@@ -161,8 +157,6 @@ func sendFileDataToServer(tf *common.Transfer, partNo int, upInfo *common.Multip
 		return
 	}
 
-	log.Println("infoData = ", len(infoData))
-
 	mess := &common.Message{
 		Type:    common.MessFileUp,
 		Data:    string(infoData),
@@ -173,12 +167,7 @@ func sendFileDataToServer(tf *common.Transfer, partNo int, upInfo *common.Multip
 		return
 	}
 
-	log.Println("len(data) = ", len(data))
-	//mess = nil
-	//infoData = nil
 	err = tf.WritePkg(data)
-	//data = nil
-
 	if err != nil {
 		log.Printf("write file data[%d] to server failed! error: %v\n", partNo, err)
 		return
